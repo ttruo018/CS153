@@ -71,6 +71,14 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+static bool thread_compare (const struct list_elem *a,
+			const struct list_elem *b,
+			void *aux UNUSED)
+{
+	struct thread * t1 = list_entry(a, struct thread, elem);
+	struct thread * t2 = list_entry(b, struct thread, elem);
+	return get_pri(t1) < get_pri(t2);
+}
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -520,14 +528,6 @@ alloc_frame (struct thread *t, size_t size)
   return t->stack;
 }
 
-static bool thread_compare (const struct list_elem *a,
-			const struct list_elem *b,
-			void *aux UNUSED)
-{
-	struct thread * t1 = list_entry(a, struct thread, elem);
-	struct thread * t2 = list_entry(b, struct thread, elem);
-	return get_pri(t1) < get_pri(t2);
-}
 
 /* Chooses and returns the next thread to be scheduled.  Should
    return a thread from the run queue, unless the run queue is
