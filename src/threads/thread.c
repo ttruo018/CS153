@@ -343,16 +343,43 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  thread_current () ->basePriority = thread_current() -> priority;
+  thread_current () ->priority  = new_priority;
+  //thread_current ()-
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  return get_pri(thread_current());
 }
 
+/* Gets the actual priority with donor list */
+int get_pri(struct thread * t)
+{
+	int temp = 0;
+	if(list_empty(&t->lockList))
+	{
+		return t->priority;
+	}
+	struct list_elem * e;
+	int max_priority = t->priority;
+	for(e = list_begin(&t->lockList); e != list_end(&t->lockList); e = list_next(e))
+	{
+		struct lock * locker = list_entry(e, struct lock, donorElem);
+		struct list_elem * e2;
+		for(e2 = list_begin(&locker->semaphore.waiters); e2 != list_end(&locker->semaphore.waiters); e2 = list_next(e2))
+		{
+			struct thread * t2 = list_entry(e2, struct thread, elem);
+			if((temp = get_pri(t2)) > max_priority)
+			{
+				max_priority = temp;
+			}
+		}
+	}
+	return max_priority;
+}
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) 
