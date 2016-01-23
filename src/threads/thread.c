@@ -348,7 +348,7 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current () ->basePriority = thread_current() -> priority;
+  thread_current () ->basePriority = new_priority;
   thread_current () ->priority  = new_priority;
   struct thread * t = next_thread_to_run();
   if(new_priority < t-> priority) {
@@ -542,7 +542,7 @@ next_thread_to_run (void)
     return idle_thread;
   else
 	{
-   	 struct thread * maxPriThread = list_entry( list_max(&ready_list, thread_compare, NULL), struct thread, elem);
+   	 struct thread * maxPriThread = list_max(&ready_list, thread_compare, NULL);
 	list_remove(list_max(&ready_list, thread_compare, NULL));
    	 return maxPriThread;
 	}
