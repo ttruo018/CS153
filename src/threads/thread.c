@@ -520,8 +520,7 @@ alloc_frame (struct thread *t, size_t size)
   return t->stack;
 }
 
-static bool
-thread_compare (const struct list_elem *a,
+static bool thread_compare (const struct list_elem *a,
 			const struct list_elem *b,
 			void *aux UNUSED)
 {
