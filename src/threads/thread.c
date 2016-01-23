@@ -79,6 +79,11 @@ static bool thread_compare (const struct list_elem *a,
 	struct thread * t2 = list_entry(b, struct thread, elem);
 	return get_pri(t1) < get_pri(t2);
 }
+
+struct thread * highestPri(void)
+{
+	return list_entry(list_max(&ready_list, thread_compare, NULL), struct thread, elem);
+}
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
