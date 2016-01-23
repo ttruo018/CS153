@@ -208,6 +208,11 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+  struct thread * m = list_entry(list_max(&ready_list, thread_compare, NULL), struct thread, elem);
+  if(m->priority > thread_current()->priority)
+  {
+	thread_yield();
+  }
 
   return tid;
 }
@@ -361,7 +366,6 @@ thread_get_priority (void)
 /* Gets the actual priority with donor list */
 int get_pri(struct thread * t)
 {
-	int temp = 0;
 	if(list_empty(&t->lockList))
 	{
 		return t->priority;
@@ -375,9 +379,9 @@ int get_pri(struct thread * t)
 		for(e2 = list_begin(&locker->semaphore.waiters); e2 != list_end(&locker->semaphore.waiters); e2 = list_next(e2))
 		{
 			struct thread * t2 = list_entry(e2, struct thread, elem);
-			if((temp = get_pri(t2)) > max_priority)
+			if(get_pri(t2) > max_priority)
 			{
-				max_priority = temp;
+				max_priority = get_pri(t2);
 			}
 		}
 	}
@@ -498,6 +502,7 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->basePriority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }
@@ -516,7 +521,7 @@ alloc_frame (struct thread *t, size_t size)
 }
 
 static bool
-MY_COMPARATOR_FUNCTION (const struct list_elem *a,
+thread_compare (const struct list_elem *a,
 			const struct list_elem *b,
 			void *aux UNUSED)
 {
@@ -537,8 +542,8 @@ next_thread_to_run (void)
     return idle_thread;
   else
 	{
-   	 struct thread * maxPriThread = list_entry( list_max(&ready_list, MY_COMPARATOR_FUNCTION, NULL), struct thread, elem);
-	list_remove(list_max(&ready_list, MY_COMPARATOR_FUNCTION, NULL));
+   	 struct thread * maxPriThread = list_entry( list_max(&ready_list, thread_compare, NULL), struct thread, elem);
+	list_remove(list_max(&ready_list, thread_compare, NULL));
    	 return maxPriThread;
 	}
 }
