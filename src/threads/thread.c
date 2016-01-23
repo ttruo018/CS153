@@ -541,7 +541,7 @@ next_thread_to_run (void)
     return idle_thread;
   else
 	{
-   	 struct thread * maxPriThread = list_max(&ready_list, thread_compare, NULL);
+   	 struct thread * maxPriThread = list_entry(list_max(&ready_list, thread_compare, NULL), struct thread, elem);
 	list_remove(list_max(&ready_list, thread_compare, NULL));
    	 return maxPriThread;
 	}
