@@ -221,7 +221,7 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-  struct thread * m = list_entry(list_max(&ready_list, thread_compare, NULL), struct thread, elem);
+  struct thread * m = highestPri(); // you want the thread with highest priority to run first 
   if(m->priority > thread_current()->priority)
   {
 	thread_yield();
@@ -363,9 +363,9 @@ thread_set_priority (int new_priority)
 {
   thread_current () ->basePriority = new_priority;
   thread_current () ->priority  = new_priority;
-  struct thread * t = list_entry(list_max(&ready_list, thread_compare, NULL), struct thread, elem);
-  if(new_priority < t-> priority) {
-	  thread_yield();
+  struct thread * t = highestPri(); 
+  if(new_priority < t-> priority) { // thread with highest pri needs to run first
+	  thread_yield();	    // everything else gets yielded
   }
 }
 
@@ -519,7 +519,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 
-  list_init(&t->lockList);
+  list_init(&t->lockList); // MUST initialize the thread and put it into lockList
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -547,11 +547,11 @@ next_thread_to_run (void)
   if (list_empty (&ready_list))
     return idle_thread;
   else
-	{
-   	 struct thread * maxPriThread = list_entry(list_max(&ready_list, thread_compare, NULL), struct thread, elem);
+  {
+   	struct thread * maxPriThread = highestPri(); // the next thread to run should be the one with highest priority
 	list_remove(list_max(&ready_list, thread_compare, NULL));
-   	 return maxPriThread;
-	}
+   	return maxPriThread;
+  }
 }
 
 /* Completes a thread switch by activating the new thread's page
