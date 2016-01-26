@@ -403,10 +403,10 @@ int get_pri(struct thread * t)
 }
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
 	ASSERT(thread_mlfqs);
-	
+	thread_current()->niceValue = nice;	
 }
 
 /* Returns the current thread's nice value. */
@@ -414,23 +414,23 @@ int
 thread_get_nice (void) 
 {
  	ASSERT(thread_mlfqs);
-	return thread_current()->niceValue;;
+	return thread_current()->niceValue;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+	ASSERT(thread_mlfqs);
+ 	return 0;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+	ASSERT(thread_mlfqs);
+	return 0;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
