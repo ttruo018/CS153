@@ -1,4 +1,4 @@
-	return list_entry(list_max(&cond->waiters, struct thread, NULL), struct thread, NULL)/* This file is derived from source code for the Nachos
+/* This file is derived from source code for the Nachos
    instructional operating system.  The Nachos copyright notice
    is reproduced in full below. */
 
@@ -50,6 +50,10 @@ static bool pri_comp (const struct list_elem *a, const struct list_elem *b, void
 	return get_pri(t1) < get_pri(t2);
 }
 
+struct thread * semPri(struct semaphore * sema)
+{
+	return list_entry(list_max(&sema->waiters, pri_comp, NULL), struct thread, elem);
+}
 void
 sema_init (struct semaphore *sema, unsigned value) 
 {
@@ -67,8 +71,7 @@ sema_init (struct semaphore *sema, unsigned value)
    interrupts disabled, but if it sleeps then the next scheduled
    thread will probably turn interrupts back on. */
 void
-sema_down (struct semaphore *sema) 
-{
+sema_down (struct semaphore *sema){
   enum intr_level old_level;
 
   ASSERT (sema != NULL);
@@ -124,14 +127,14 @@ sema_up (struct semaphore *sema)
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) 
   {
-	struct thread * t = list_entry(list_max(&sema->waiters, pri_comp, NULL), struct thread, &sema->value);
+	struct thread * t = semPri(sema); 
 	list_remove(list_max(&sema->waiters, pri_comp, NULL));
 	thread_unblock(t);
   }
   sema->value++;
   intr_set_level (old_level);
 
-  struct thread * m = list_entry(list_max(&sema->waiters, pri_comp, NULL), struct thread, &sema->value);
+  struct thread * m = highestPri();
   if(m->priority > thread_current()->priority)
   {
  	thread_yield(); 
@@ -382,5 +385,6 @@ cond_broadcast (struct condition *cond, struct lock *lock)
   ASSERT (cond != NULL);
   ASSERT (lock != NULL);
 
-  while (!list_empty (&cond->waiters))    cond_signal (cond, lock);
+  while (!list_empty (&cond->waiters))  
+  cond_signal (cond, lock);
 }
