@@ -405,16 +405,15 @@ int get_pri(struct thread * t)
 void
 thread_set_nice (int nice UNUSED) 
 {
-	ASSERT(thread_mlfqs);
-	
+  /* Not yet implemented. */
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
- 	ASSERT(thread_mlfqs);
-	return thread_current()->niceValue;;
+  /* Not yet implemented. */
+  return 0;
 }
 
 /* Returns 100 times the system load average. */
