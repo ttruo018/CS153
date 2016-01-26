@@ -93,8 +93,8 @@ struct thread
     int64_t wakeupTime;                /* Threads total time until it wakes up */
     struct list lockList;              /* List for locked elements */
     struct list_elem sleeper;          /* Element for sleepList */
-    int niceValue;                     /* Nice value */
-    int recent_cpu;                    /* CPU time */
+    int niceValue;                     /* Nice value for advanced BSD*/
+    int recent_cpu;                    /* Estimation of total clock ticks recently used */
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
