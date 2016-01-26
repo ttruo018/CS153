@@ -414,7 +414,7 @@ thread_get_priority (void)
 int get_pri(struct thread * t)
 {
 	int temp = 0;
-	enum intr_level old_level = intr_disable();
+	//enum intr_level old_level = intr_disable();
 	if(list_empty(&t->lockList))
 	{
 		return t->priority;
@@ -435,7 +435,7 @@ int get_pri(struct thread * t)
 			}
 		}
 	}
-	intr_set_level(old_level);
+	//intr_set_level(old_level);
 	return max_priority;
 }
 /* Remove thread from ready list and insert it with ordering */
