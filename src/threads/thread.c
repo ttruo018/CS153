@@ -430,10 +430,10 @@ int get_pri(struct thread * t)
 			if((temp = get_pri(t2)) > max_priority)
 			{
 				max_priority = temp;
+				ready_list_order(t2);
 			}
 		}
 	}
-	ready_list_order(t);
 	return max_priority;
 }
 /* Remove thread from ready list and insert it with ordering */
