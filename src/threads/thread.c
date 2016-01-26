@@ -703,7 +703,7 @@ schedule (void)
   if(thread_mlfqs)
   {
 	schedule_thread_priorities();
-	schedule_update_threads();
+	schedule_sleeping_threads();
   }
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
