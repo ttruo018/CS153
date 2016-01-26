@@ -1,4 +1,4 @@
-/* This file is derived from source code for the Nachos
+	return list_entry(list_max(&cond->waiters, struct thread, NULL), struct thread, NULL)/* This file is derived from source code for the Nachos
    instructional operating system.  The Nachos copyright notice
    is reproduced in full below. */
 
@@ -48,29 +48,6 @@ static bool pri_comp (const struct list_elem *a, const struct list_elem *b, void
 	struct thread * t1 = list_entry(a, struct thread, elem);
 	struct thread * t2 = list_entry(b, struct thread, elem);
 	return get_pri(t1) < get_pri(t2);
-}
-
-static bool semPriority(const struct list_elem *a, struct list_elem *b, void *aux UNUSED) // compare priority among semaphores and their waiters
-{
-        struct semaphore_elem * semA = list_entry(a, struct semaphore_elem, elem);
-        struct semaphore_elem * semB = list_entry(b, struct semaphore_elem, elem);
-        if(list_empty(&semA->semaphore.waiters))
-        {
-                return false;
-        }
-        if(list_empty(&semB->semaphore.waiters))
-        {
-                return true;
-        }
-        list_sort(&semA->semaphore.waiters, &pri_comp, NULL);
-        list_sort(&semB->semaphore.waiters, &pri_comp, NULL);
-        struct thread * thrA = list_entry(list_front(&semA->semaphore.waiters), struct thread, elem);
-        struct thread * thrB = list_entry(list_front(&semB->semaphore.waiters), struct thread, elem);
-        if(thrA->priority < thrB->priority)
-        {
-                return false;
-        }
-        return true;
 }
 
 void
@@ -147,14 +124,14 @@ sema_up (struct semaphore *sema)
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) 
   {
-	struct thread * t = highestPri(); 
+	struct thread * t = list_entry(list_max(&sema->waiters, pri_comp, NULL), struct thread, &sema->value);
 	list_remove(list_max(&sema->waiters, pri_comp, NULL));
 	thread_unblock(t);
   }
   sema->value++;
   intr_set_level (old_level);
 
-  struct thread * m = highestPri(); // once thread is finished, selects highest priority thread that is next
+  struct thread * m = list_entry(list_max(&sema->waiters, pri_comp, NULL), struct thread, &sema->value);
   if(m->priority > thread_current()->priority)
   {
  	thread_yield(); 
@@ -310,6 +287,28 @@ cond_init (struct condition *cond)
   list_init (&cond->waiters);
 }
 
+static bool semPriority(const struct list_elem *a, struct list_elem *b, void *aux UNUSED) // compare priority among semaphores and their waiters
+{
+        struct semaphore_elem * semA = list_entry(a, struct semaphore_elem, elem);
+        struct semaphore_elem * semB = list_entry(b, struct semaphore_elem, elem);
+        if(list_empty(&semA->semaphore.waiters))
+        {
+                return false;
+        }
+        if(list_empty(&semB->semaphore.waiters))
+        {
+                return true;
+        }
+        list_sort(&semA->semaphore.waiters, &pri_comp, NULL);
+        list_sort(&semB->semaphore.waiters, &pri_comp, NULL);
+        struct thread * thrA = list_entry(list_front(&semA->semaphore.waiters), struct thread, elem);
+        struct thread * thrB = list_entry(list_front(&semB->semaphore.waiters), struct thread, elem);
+        if(thrA->priority < thrB->priority)
+        {
+                return false;
+        }
+        return true;
+}
 /* Atomically releases LOCK and waits for COND to be signaled by
    some other piece of code.  After COND is signaled, LOCK is
    reacquired before returning.  LOCK must be held before calling
@@ -383,6 +382,5 @@ cond_broadcast (struct condition *cond, struct lock *lock)
   ASSERT (cond != NULL);
   ASSERT (lock != NULL);
 
-  while (!list_empty (&cond->waiters))
-    cond_signal (cond, lock);
+  while (!list_empty (&cond->waiters))    cond_signal (cond, lock);
 }
