@@ -297,7 +297,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, thread_compare, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -368,7 +368,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, thread_compare, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -433,9 +433,20 @@ int get_pri(struct thread * t)
 			}
 		}
 	}
+	ready_list_order(t);
 	return max_priority;
 }
+/* Remove thread from ready list and insert it with ordering */
+void ready_list_order(struct thread * t)
+{
+	if(t->status == THREAD_READY)
+	{
+		list_remove(&t->elem);
+		list_insert_ordered(&ready_list, &t->elem, thread_compare, NULL);
+	}
+}
 
+/* Calculate new priority with BSD formula */
 void calc_bsd(struct thread * t, void * aux UNUSED)
 {
 	ASSERT(thread_mlfqs);
@@ -446,13 +457,11 @@ void
 thread_set_nice (int nice) 
 {
 	ASSERT(thread_mlfqs);
-	struct thread * t1 = thread_current();
-	t1->niceValue = nice;	
-	calc_bsd(t1, NULL);
-	list_remove(&t1->elem);
-	list_insert_ordered(&ready_list, &t1->elem, thread_compare, NULL);	
+	thread_current()->niceValue = nice;	
+	calc_bsd(thread_current(), NULL);
+	ready_list_order(thread_current());
 	struct thread * t = highestPri();
-	if(t->priority > t1->priority)
+	if(t->priority > thread_current()->priority)
 	{
 		thread_yield();
 	}
@@ -703,8 +712,8 @@ schedule (void)
   if(thread_mlfqs)
   {
 	schedule_thread_priorities();
-	schedule_sleeping_threads();
   }
+  schedule_sleeping_threads();
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;

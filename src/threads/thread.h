@@ -145,6 +145,7 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-void calc_bsd(struct thread * t, void * aux UNUSED);
-void thread_sleep(int64_t wakeTime);
+void ready_list_order(struct thread * );
+void calc_bsd(struct thread *, void * aux);
+void thread_sleep(int64_t );
 #endif /* threads/thread.h */
