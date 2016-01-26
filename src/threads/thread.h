@@ -89,14 +89,15 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     int basePriority;                   /* Saved base priority */
-    struct list_elem allelem;           /* List element for all threads list. */
     int64_t wakeupTime;                /* Threads total time until it wakes up */
     struct list lockList;              /* List for locked elements */
-    struct list_elem sleeper;          /* Element for sleepList */
     int niceValue;                     /* Nice value for advanced BSD*/
     int recent_cpu;                    /* Estimation of total clock ticks recently used */
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    struct list_elem sleeper;          /* Element for sleepList */
+    struct list_elem allelem;           /* List element for all threads list. */
+    struct list_elem sleepElem;          /* Element for sleep_List */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -144,4 +145,6 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+void calc_bsd(struct thread * t, void * aux UNUSED);
+void thread_sleep(int64_t wakeTime);
 #endif /* threads/thread.h */

@@ -30,6 +30,9 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+/* List of processes in sleep. Added from timer_sleep function and removed by adding to ready_list */
+static struct list sleep_List;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -128,6 +131,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  list_init (&sleep_List); // need to initialize sleep_list for threads
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -406,7 +410,7 @@ thread_get_priority (void)
   return get_pri(thread_current());
 }
 
-/* Gets the actual priority with donor list */
+/* Gets thread t's maximum donated priority, or PRI_MIN if no donations */
 int get_pri(struct thread * t)
 {
 	int temp = 0;
@@ -431,6 +435,12 @@ int get_pri(struct thread * t)
 	}
 	return max_priority;
 }
+
+void calc_bsd(struct thread * t, void * aux UNUSED)
+{
+	ASSERT(thread_mlfqs);
+	t->priority = PRI_MAX - (t->recent_cpu/4) - (t->niceValue*2);
+}
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice) 
@@ -438,7 +448,7 @@ thread_set_nice (int nice)
 	ASSERT(thread_mlfqs);
 	struct thread * t1 = thread_current();
 	t1->niceValue = nice;	
-	t1->priority = PRI_MAX - (t1->recent_cpu/4) - (t1->niceValue*2);
+	calc_bsd(t1, NULL);
 	list_remove(&t1->elem);
 	list_insert_ordered(&ready_list, &t1->elem, thread_compare, NULL);	
 	struct thread * t = highestPri();
@@ -641,6 +651,45 @@ thread_schedule_tail (struct thread *prev)
     }
 }
 
+static bool sleep_compare(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
+{
+	return list_entry(a, struct thread, sleepElem)->wakeupTime < list_entry(b, struct thread, sleepElem)->wakeupTime;
+}
+/* A thread will sleep for wakeup_time. Inserted into sleep_List and thread_blocked */
+void thread_sleep(int64_t wakeTime)
+{
+	ASSERT(thread_current() != idle_thread);
+	
+	enum intr_level old_level;
+	old_level = intr_disable();
+	struct thread *t = thread_current();
+	t->wakeupTime = wakeTime;
+	list_insert_ordered (&sleep_List, &t->sleepElem, sleep_compare, NULL); 
+	thread_block();
+	intr_set_level (old_level);
+}
+/* Update sleeping threads to see if any are ready to be unblocked */
+static void schedule_sleeping_threads(void)
+{
+	struct list_elem * e;
+	for(e = list_begin(&sleep_List); e != list_end(&sleep_List); e = list_next(e))
+	{
+		struct thread * t = list_entry(list_begin(&sleep_List), struct thread, sleepElem);
+		if(t->wakeupTime <= timer_ticks())
+		{
+			thread_unblock(t);
+			list_pop_front(&sleep_List);
+		}
+	} 
+}
+
+/*Priorities with the BSD formula */
+static void schedule_thread_priorities(void)
+{
+	ASSERT(thread_mlfqs);
+	thread_foreach(calc_bsd, NULL);
+	list_sort(&ready_list, thread_compare, NULL);	
+}
 /* Schedules a new process.  At entry, interrupts must be off and
    the running process's state must have been changed from
    running to some other state.  This function finds another
@@ -651,6 +700,11 @@ thread_schedule_tail (struct thread *prev)
 static void
 schedule (void) 
 {
+  if(thread_mlfqs)
+  {
+	schedule_thread_priorities();
+	schedule_update_threads();
+  }
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
