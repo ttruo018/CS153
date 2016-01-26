@@ -324,6 +324,29 @@ cond_wait (struct condition *cond, struct lock *lock)
   lock_acquire (lock);
 }
 
+static bool semPriority(const struct list_elem *a, struct list_elem *b, void *aux UNUSED)
+{
+        struct semaphore_elem * semA = list_entry(a, struct semaphore_elem, elem);
+        struct semaphore_elem * semB = list_entry(b, struct semaphore_elem, elem);
+        if(list_empty(&semA->semaphore.waiters))
+        {
+                return false;
+        }
+        if(list_empty(&semB->semaphore.waiters))
+        {
+                return true;
+        }
+        list_sort(&semA->semaphore.waiters, &pri_comp, NULL);
+        list_sort(&semB->semaphore.waiters, &pri_comp, NULL);
+        struct thread * thrA = list_entry(list_front(&semA->semaphore.waiters), struct thread, elem);
+        struct thread * thrB = list_entry(list_front(&semB->semaphore.waiters), struct thread, elem);
+        if(thrA->priority > thrB->priority)
+        {
+                return true;
+        }
+        return false;
+}
+
 /* If any threads are waiting on COND (protected by LOCK), then
    this function signals one of them to wake up from its wait.
    LOCK must be held before calling this function.
@@ -339,7 +362,9 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   ASSERT (!intr_context ());
   ASSERT (lock_held_by_current_thread (lock));
 
-  if (!list_empty (&cond->waiters)) 
+  if (!list_empty (&cond->waiters))
+{ 
+    list_sort(&cond->waiters, &semPriority, NULL); // sort to get highest priority
     sema_up (&list_entry (list_pop_front (&cond->waiters),
                           struct semaphore_elem, elem)->semaphore);
 }
