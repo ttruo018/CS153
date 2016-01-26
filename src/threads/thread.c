@@ -247,7 +247,7 @@ thread_block (void)
 }
 
 /* Transitions a blocked thread T to the ready-to-run state.
-   This is an error if T is not blocked.  (Use thread_yield() to
+   This is an error if T is not blocked.  (Use tread_yield() to
    make the running thread ready.)
 
    This function does not preempt the running thread.  This can
@@ -361,7 +361,7 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current () ->basePriority = new_priority;
+  thread_current () ->basePriority = new_priority; // save base priority in order to return it back to normal after sema_up
   thread_current () ->priority  = new_priority;
   struct thread * t = highestPri(); 
   if(new_priority < t-> priority) { // thread with highest pri needs to run first
@@ -379,12 +379,13 @@ thread_get_priority (void)
 /* Gets the actual priority with donor list */
 int get_pri(struct thread * t)
 {
+	int temp = 0;
 	if(list_empty(&t->lockList))
 	{
 		return t->priority;
 	}
-	struct list_elem * e;
 	int max_priority = t->priority;
+	struct list_elem * e;
 	for(e = list_begin(&t->lockList); e != list_end(&t->lockList); e = list_next(e))
 	{
 		struct lock * locker = list_entry(e, struct lock, donorElem);
@@ -392,9 +393,9 @@ int get_pri(struct thread * t)
 		for(e2 = list_begin(&locker->semaphore.waiters); e2 != list_end(&locker->semaphore.waiters); e2 = list_next(e2))
 		{
 			struct thread * t2 = list_entry(e2, struct thread, elem);
-			if(get_pri(t2) > max_priority)
+			if((temp = get_pri(t2)) > max_priority)
 			{
-				max_priority = get_pri(t2);
+				max_priority = temp;
 			}
 		}
 	}
@@ -404,15 +405,16 @@ int get_pri(struct thread * t)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+	ASSERT(thread_mlfqs);
+	
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+ 	ASSERT(thread_mlfqs);
+	return thread_current()->niceValue;;
 }
 
 /* Returns 100 times the system load average. */
