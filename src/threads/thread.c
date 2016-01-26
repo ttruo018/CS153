@@ -10,6 +10,7 @@
 #include "threads/palloc.h"
 #include "threads/switch.h"
 #include "threads/synch.h"
+#include "devices/timer.h"
 #include "threads/vaddr.h"
 #include "threads/fixed-point.h"
 #ifdef USERPROG
@@ -86,6 +87,25 @@ struct thread * highestPri(void)
 {
 	return list_entry(list_max(&ready_list, thread_compare, NULL), struct thread, elem);
 }
+
+static void update_recent_cpu(struct thread * t, void * aux UNUSED)
+{
+	ASSERT(thread_mlfqs);
+	t->recent_cpu = fixed_point_mult(fixed_point_divide(2*load_avg, 2*load_avg + 1), t->recent_cpu) + t->niceValue;
+}
+
+static void update_bsd(void )
+{
+	ASSERT(thread_mlfqs);
+	int readyThreads = list_size(&ready_list);
+	if(running_thread() != idle_thread)
+	{
+		readyThreads++;
+	}
+	load_avg = fixed_point_mult(fixed_point_number(59, 60), load_avg) + fixed_point_mult(fixed_point_number(1, 60), readyThreads);
+	thread_foreach(update_recent_cpu, NULL);
+}
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -99,6 +119,7 @@ struct thread * highestPri(void)
 
    It is not safe to call thread_current() until this function
    finishes. */
+
 void
 thread_init (void) 
 {
@@ -148,7 +169,14 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
-
+  if(thread_mlfqs)
+  {
+	t->recent_cpu += fixed_point_number(1, 1); 
+	if((timer_ticks() % TIMER_FREQ) == 0) // TIMER_FREQ = 100 timer interrupts per second in Timer.h
+	{
+		update_bsd();
+	}
+  }
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
@@ -408,7 +436,16 @@ void
 thread_set_nice (int nice) 
 {
 	ASSERT(thread_mlfqs);
-	thread_current()->niceValue = nice;	
+	struct thread * t1 = thread_current();
+	t1->niceValue = nice;	
+	t1->priority = PRI_MAX - (t1->recent_cpu/4) - (t1->niceValue*2);
+	list_remove(&t1->elem);
+	list_insert_ordered(&ready_list, &t1->elem, thread_compare, NULL);	
+	struct thread * t = highestPri();
+	if(t->priority > t1->priority)
+	{
+		thread_yield();
+	}
 }
 
 /* Returns the current thread's nice value. */
@@ -424,7 +461,7 @@ int
 thread_get_load_avg (void) 
 {
 	ASSERT(thread_mlfqs);
- 	return 0;
+ 	return 100 * fixed_point_round_near(load_avg);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -432,7 +469,7 @@ int
 thread_get_recent_cpu (void) 
 {
 	ASSERT(thread_mlfqs);
-	return 0;
+	return 100* fixed_point_round_near(thread_current()->recent_cpu);
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
