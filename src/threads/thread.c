@@ -667,14 +667,14 @@ static bool sleep_compare(const struct list_elem *a, const struct list_elem *b, 
 	return list_entry(a, struct thread, sleepElem)->wakeupTime < list_entry(b, struct thread, sleepElem)->wakeupTime;
 }
 /* A thread will sleep for wakeup_time. Inserted into sleep_List and thread_blocked */
-void thread_sleep(int64_t wakeTime)
+void thread_sleep(int64_t start)
 {
 	ASSERT(thread_current() != idle_thread);
 	
 	enum intr_level old_level;
 	old_level = intr_disable();
 	struct thread *t = thread_current();
-	t->wakeupTime = wakeTime;
+	t->wakeupTime = start;
 	list_insert_ordered (&sleep_List, &t->sleepElem, sleep_compare, NULL); 
 	thread_block();
 	intr_set_level (old_level);

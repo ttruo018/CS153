@@ -128,7 +128,7 @@ sema_up (struct semaphore *sema)
   if (!list_empty (&sema->waiters)) 
   {
 	struct thread * t = semPri(sema); 
-	list_remove(list_max(&sema->waiters, pri_comp, NULL));
+	list_remove(list_max(&sema->waiters, &pri_comp, NULL));
 	thread_unblock(t);
   }
   sema->value++;
@@ -302,10 +302,8 @@ static bool semPriority(const struct list_elem *a, const struct list_elem *b, vo
         {
                 return true;
         }
-        list_sort(&semA->semaphore.waiters, &pri_comp, NULL);
-        list_sort(&semB->semaphore.waiters, &pri_comp, NULL);
-        struct thread * thrA = list_entry(list_front(&semA->semaphore.waiters), struct thread, elem);
-        struct thread * thrB = list_entry(list_front(&semB->semaphore.waiters), struct thread, elem);
+        struct thread * thrA = list_entry(list_max(&semA->semaphore.waiters, &pri_comp, NULL), struct thread, elem);
+        struct thread * thrB = list_entry(list_max(&semB->semaphore.waiters, &pri_comp, NULL), struct thread, elem);
         if(thrA->priority < thrB->priority)
         {
                 return false;
