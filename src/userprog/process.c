@@ -21,6 +21,14 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+struct exec_helper
+{
+	const char *file_name;	// Program to load (entire command line)
+	struct semaphore load_sema;  // Add semaphore for loading for resource race cases
+	bool run_success;		// if program loaded successfully
+	// Other stuff
+	struct list_elem * child;
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -28,20 +36,34 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  char *fn_copy;
+  //char *fn_copy;
+  struct exec_helper exec;
+  char thread_name[16];
   tid_t tid;
 
+  strcpy(exec.file_name, thread_name);
+  sema_init(exec.load_sema, 1);
+
   /* Make a copy of FILE_NAME.
-     Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+	*/
+	char *saveptr;
+	if((strcspn(file_name, " ")-1) <= 16 ) 
+	{
+		thread_name = strtok_r(file_name, " ", &saveptr);
+	}
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+  tid = thread_create (thread_name, PRI_DEFAULT, start_process, exec);
+  if (tid != TID_ERROR)
+  {
+  	  sema_down(exec.load_sema);
+  	  // add the new process to children list if load was successful
+  	 list_push_back(&thread_current()->children, &exec.child); 
+    // palloc_free_page (fn_copy); 
+	}
   return tid;
 }
 
@@ -206,13 +228,15 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp) 
+load (const char *cmd_line, void (**eip) (void), void **esp) 
 {
   struct thread *t = thread_current ();
+  char file_name[NAME_MAX + 2];
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
   off_t file_ofs;
   bool success = false;
+  char * charPointer;
   int i;
 
   /* Allocate and activate page directory. */
@@ -220,6 +244,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
+
+	if( (strcspn(cmd_line, " ")- 1) <= (NAME_MAX + 2) ) 
+	{
+		file_name = strtok_r(cmd_line, " ", &charPointer);
+	}
 
   /* Open executable file. */
   file = filesys_open (file_name);
@@ -312,7 +341,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //file_close (file); Add this to process exit
   return success;
 }
 
