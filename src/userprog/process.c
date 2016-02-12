@@ -55,6 +55,8 @@ process_execute (const char *file_name)
 		char * token = strtok_r(file_name, " ", &saveptr);
 		strlcpy(token, thread_name, sizeof(token));
 	}
+
+	struct child_status *child_status = malloc(sizeof(struct child_status));
 	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, NULL);
