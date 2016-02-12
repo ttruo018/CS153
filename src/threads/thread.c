@@ -458,9 +458,6 @@ void calc_bsd(struct thread * t, void * aux UNUSED)
 void
 thread_set_nice (int nice) 
 {
-<<<<<<< HEAD
-  /* Not yet implemented. */
-=======
 	ASSERT(thread_mlfqs);
 	thread_current()->niceValue = nice;	
 	calc_bsd(thread_current(), NULL);
@@ -470,20 +467,14 @@ thread_set_nice (int nice)
 	{
 		thread_yield();
 	}
->>>>>>> EC
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-<<<<<<< HEAD
-  /* Not yet implemented. */
-  return 0;
-=======
  	ASSERT(thread_mlfqs);
 	return thread_current()->niceValue;
->>>>>>> EC
 }
 
 /* Returns 100 times the system load average. */
