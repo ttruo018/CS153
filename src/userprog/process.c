@@ -15,12 +15,20 @@
 #include "threads/init.h"
 #include "threads/interrupt.h"
 #include "threads/palloc.h"
+#include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+struct exec_helper
+{
+	const char *file_name; // Program to load (entire command line)
+	struct semaphore load_sema; // Add semaphore for loading for resource race cases
+	bool run_success; // if program loaded successfully
+	struct list_elem * child;
+};
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -28,21 +36,34 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  char *fn_copy;
-  tid_t tid;
+	struct exec_helper exec;
+	char thread_name[16];
+	tid_t tid;
+	
+	strlcpy(exec.file_name, thread_name, sizeof(exec.file_name));
+	sema_init(&exec.load_sema, 1);
 
-  /* Make a copy of FILE_NAME.
-     Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page (0);
-  if (fn_copy == NULL)
-    return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
-
-  /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
-  return tid;
+  	/* Make a copy of FILE_NAME.
+     	Otherwise there's a race between the caller and load(). */
+  	/*fn_copy = palloc_get_page (0);
+  	if (fn_copy == NULL)
+  	  return TID_ERROR;
+  	strlcpy (fn_copy, file_name, PGSIZE);*/
+	char *saveptr;
+	if((strcspn(file_name, " ")-1) <= 16)
+	{
+		char * token = strtok_r(file_name, " ", &saveptr);
+		strlcpy(token, thread_name, sizeof(token));
+	}
+	
+	/* Create a new thread to execute FILE_NAME. */
+	tid = thread_create (thread_name, PRI_DEFAULT, start_process, NULL);
+	if (tid == TID_ERROR) 
+	{
+		sema_down(&exec.load_sema);
+		list_push_back(&thread_current()->children, &exec.child);
+	}
+	return tid;
 }
 
 /* A thread function that loads a user process and starts it
@@ -88,6 +109,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+	
   return -1;
 }
 

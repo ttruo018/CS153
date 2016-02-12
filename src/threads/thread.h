@@ -91,6 +91,7 @@ struct thread
     int basePriority;                   /* Saved base priority */
     int64_t wakeupTime;                /* Threads total time until it wakes up */
     struct list lockList;              /* List for locked elements */
+    struct list children;
     int niceValue;                     /* Nice value for advanced BSD*/
     int recent_cpu;                    /* Estimation of total clock ticks recently used */
     /* Shared between thread.c and synch.c. */
