@@ -87,6 +87,11 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
+static bool timer_compare (const struct list_elem *a, const struct list_elem *b, void * aux UNUSED)
+{
+	return list_entry(a, struct thread, sleeper)->wakeupTime < list_entry(b, struct thread, sleeper)->wakeupTime;
+}
+
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
@@ -98,7 +103,8 @@ timer_sleep (int64_t ticks)
   old_state = intr_disable();
   struct thread * t = thread_current();
   t->wakeupTime = start + ticks;
-  list_push_back (&sleepList, &t->sleeper);
+  list_insert_ordered(&sleepList, &t->sleeper, timer_compare, NULL); 
+  //list_push_back (&sleepList, &t->sleeper);
   thread_block();
   intr_set_level(old_state);
 }
