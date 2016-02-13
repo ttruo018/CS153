@@ -111,7 +111,8 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-	
+	lock_acquire(&thread_current()->child_lock);
+		
   return -1;
 }
 
