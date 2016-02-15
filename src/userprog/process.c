@@ -15,6 +15,7 @@
 #include "threads/init.h"
 #include "threads/interrupt.h"
 #include "threads/palloc.h"
+#include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
@@ -23,12 +24,20 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
 struct exec_helper
 {
+<<<<<<< HEAD
 	const char *file_name;	// Program to load (entire command line)
 	struct semaphore load_sema;  // Add semaphore for loading for resource race cases
 	bool run_success;		// if program loaded successfully
 	// Other stuff
 	struct list_elem * child;
 
+=======
+	const char *file_name; // Program to load (entire command line)
+	struct semaphore load_sema; // Add semaphore for loading for resource race cases
+	bool run_success; // if program loaded successfully
+	struct list_elem * child;
+};
+>>>>>>> 1fe94f8bfd803840273ee6e5a022679d1d846bfa
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -36,6 +45,7 @@ struct exec_helper
 tid_t
 process_execute (const char *file_name) 
 {
+<<<<<<< HEAD
   //char *fn_copy;
   struct exec_helper exec;
   char thread_name[16];
@@ -65,6 +75,38 @@ process_execute (const char *file_name)
     // palloc_free_page (fn_copy); 
 	}
   return tid;
+=======
+	struct exec_helper exec;
+	char thread_name[16];
+	tid_t tid;
+	
+	strlcpy(exec.file_name, thread_name, sizeof(exec.file_name));
+	sema_init(&exec.load_sema, 1);
+
+  	/* Make a copy of FILE_NAME.
+     	Otherwise there's a race between the caller and load(). */
+  	/*fn_copy = palloc_get_page (0);
+  	if (fn_copy == NULL)
+  	  return TID_ERROR;
+  	strlcpy (fn_copy, file_name, PGSIZE);*/
+	char *saveptr;
+	if((strcspn(file_name, " ")-1) <= 16)
+	{
+		char * token = strtok_r(file_name, " ", &saveptr);
+		strlcpy(token, thread_name, sizeof(token));
+	}
+
+	struct child_status *child_status = malloc(sizeof(struct child_status));
+	
+	/* Create a new thread to execute FILE_NAME. */
+	tid = thread_create (thread_name, PRI_DEFAULT, start_process, NULL);
+	if (tid == TID_ERROR) 
+	{
+		sema_down(&exec.load_sema);
+		list_push_back(&thread_current()->children, &exec.child);
+	}
+	return tid;
+>>>>>>> 1fe94f8bfd803840273ee6e5a022679d1d846bfa
 }
 
 /* A thread function that loads a user process and starts it
@@ -110,6 +152,8 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+	lock_acquire(&thread_current()->child_lock);
+		
   return -1;
 }
 
