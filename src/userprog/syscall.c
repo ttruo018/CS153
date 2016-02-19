@@ -33,3 +33,37 @@ syscall_handler (struct intr_frame *f UNUSED)
   printf ("system call!\n");
   thread_exit ();
 }
+
+
+struct child_process * add_child_process ( int pid) 
+{
+	struct child_process *cp = malloc(sizeof( child_process) );
+	cp->pid = pid;
+	cp->load = NOT_LOADED;
+	cp->wait = false;
+	cp->exit = false;
+	lock_init(cp->wait_lock);
+	list_push_back(&thread_current()->children, cp->elem);
+
+	return cp;
+}
+
+struct child_process * get_child_process ( int pid) 
+{
+	struct thread *t = &thread_current();
+	struct list_elem *e;
+
+	for(e = list_begin(&t->children); e!= list_end(&t->children); e = list_next(e))
+	{
+		struct child_process *cp = list_entry(e, struct child_process, elem);
+		if(cp->pid == pid) {
+			return cp;
+		}
+	}
+}
+
+void remove_child_process (struct child_process *cp)
+{
+	list_remove(&cp->elem);
+	free(cp);
+}
