@@ -63,7 +63,7 @@ process_execute (const char *file_name)
 	memset (&if_, 0, sizeof if_);
 	if_.gs = if_.fg = if_.es = if_.ds = if_.ss = SEL_UDSEG;
 	if_.cs = SEL_UCSEG;
-	if_.eflags = FlAG_IF | FLAG_MBS;
+	if_.eflags = FLAG_IF | FLAG_MBS;
 	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, NULL);
@@ -121,7 +121,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-	lock_acquire(&thread_current()->child_lock);
+//	lock_acquire(&thread_current()->child_lock);
 		
   return -1;
 }
