@@ -122,12 +122,12 @@ int
 process_wait (tid_t child_tid ) 
 {
 	struct child_process *cp = get_child_process(child_tid);
-	cp->wait = true;
-	while (!cp->exit)
+	cp.wait = true;
+	while (!cp.exit)
 	{
 		//
 	}
-	int status = cp->status;
+	int status = cp.status;
 	remove_child_process(&cp);
 
 	return status;
