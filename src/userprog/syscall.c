@@ -42,15 +42,15 @@ struct child_process * add_child_process ( int pid)
 	cp->load = 0;
 	cp->wait = false;
 	cp->exit = false;
-	lock_init(cp->wait_lock);
-	list_push_back(&thread_current()->children, cp->elem);
+	lock_init(&cp->wait_lock);
+	list_push_back(&thread_current()->children, &cp->elem);
 
 	return cp;
 }
 
 struct child_process * get_child_process ( int pid) 
 {
-	struct thread *t = &thread_current();
+	struct thread *t = thread_current();
 	struct list_elem *e;
 
 	for(e = list_begin(&t->children); e!= list_end(&t->children); e = list_next(e))
