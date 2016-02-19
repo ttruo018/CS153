@@ -37,9 +37,9 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 struct child_process * add_child_process ( int pid) 
 {
-	struct child_process *cp = malloc(sizeof( child_process) );
+	struct child_process *cp = malloc(sizeof( struct child_process) );
 	cp->pid = pid;
-	cp->load = NOT_LOADED;
+	cp->load = 0;
 	cp->wait = false;
 	cp->exit = false;
 	lock_init(cp->wait_lock);
