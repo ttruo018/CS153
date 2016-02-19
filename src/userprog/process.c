@@ -59,9 +59,9 @@ process_execute (const char *file_name)
 	//struct child_status *child_status = malloc(sizeof(struct child_status));
 	
 	//initializing an interrupt frame
-	struct intr_fram if_;
+	struct intr_frame if_;
 	memset (&if_, 0, sizeof if_);
-	if_.gs = if_.fg = if_.es = if_.ds = if_.ss = SEL_UDSEG;
+	if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
 	if_.cs = SEL_UCSEG;
 	if_.eflags = FLAG_IF | FLAG_MBS;
 	
@@ -119,11 +119,18 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid ) 
 {
-//	lock_acquire(&thread_current()->child_lock);
-		
-  return -1;
+	struct child_process *cp = get_child_process(child_tid);
+	cp->wait = true;
+	while (!cp->exit)
+	{
+		//
+	}
+	int status = cp->status;
+	remove_child_process(&cp);
+
+	return status;
 }
 
 /* Free the current process's resources. */

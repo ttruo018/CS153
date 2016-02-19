@@ -20,7 +20,7 @@ static uint8_t syscall_arg[] =
 	2, /*Seek*/
 	1, /*Tell*/
 	1, /*Close*/
-}
+};
 void
 syscall_init (void) 
 {
