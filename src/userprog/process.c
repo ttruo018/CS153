@@ -56,13 +56,14 @@ process_execute (const char *file_name)
 		strlcpy(token, thread_name, sizeof(token));
 	}
 
-	struct child_status *child_status = malloc(sizeof(struct child_status));
+	//struct child_status *child_status = malloc(sizeof(struct child_status));
 	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, NULL);
 	if (tid == TID_ERROR) 
 	{
 		sema_down(&exec.load_sema);
+		//if (load(thread_name, eip?, esp?) )
 		list_push_back(&thread_current()->children, &exec.child);
 	}
 	return tid;
@@ -220,7 +221,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, char * cmdline);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -231,13 +232,15 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp) 
+load (const char *cmd_line, void (**eip) (void), void **esp) 
 {
   struct thread *t = thread_current ();
+  char file_name[NAME_MAX + 2];
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
   off_t file_ofs;
   bool success = false;
+  char * charPointer;
   int i;
 
   /* Allocate and activate page directory. */
@@ -245,6 +248,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
+
+	if( (strcspn(cmd_line, " ")- 1) <= (NAME_MAX + 2) ) 
+	{
+		strlcpy(file_name, strtok_r(cmd_line, " ", &charPointer), sizeof(file_name));
+	}
 
   /* Open executable file. */
   file = filesys_open (file_name);
@@ -327,7 +335,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp, cmd_line))
     goto done;
 
   /* Start address. */
@@ -337,7 +345,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //file_close (file); Add this to process exit
   return success;
 }
 
@@ -449,10 +457,94 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   return true;
 }
 
+/*Pushes the SIZE bytes in BUF onto the stack in KPAGE, whose
+ * page-relative stack pointer is *OFS, and then adjusts *OFS
+ * appropriately. The bytes pushed are rounded to a 32-bit 
+ * boundary.
+ *
+ * If successful, returns a pointer to the newly push object.
+ * On failure, returns a null pointer. */
+static void *
+push (uint8_t *kpage, size_t *offset, const void *buf, size_t size)
+{
+	size_t padsize = ROUND_UP (size, sizeof(uint32_t));
+
+	if(*offset < padsize) {
+		return NULL;
+	}
+	*offset -= padsize;
+	memcpy(kpage + *offset + (padsize - size), buf, size);
+	return kpage + *offset + (padsize - size);
+}
+
+static bool
+setup_stack_helper (const char * cmd_line, uint8_t * kpage, uint8_t * upage, void **esp)
+{
+	size_t ofs = PGSIZE; //##Used in push!
+	char * const null = NULL; //##Used for pushing nulls
+	char * ptr; //##strtok_r usage
+	char * argv[64]; //Max argument is 64 (for now)
+	int argc = 0;
+	char * token;
+	bool parse_end = false;
+	bool success = true;
+	//##Probably need some other variables here as well
+	
+	//##Parse and put in command line arguments, push each value
+	//##if any push() returns NULL, return false
+	while(parse_end)
+	{
+		if(argc >= 64)
+		{
+			parse_end = true;
+			break;
+		}
+		token = strtok_r(cmd_line, " ", &ptr);
+		if(token == NULL)
+		{
+			parse_end = true;
+		}
+		else
+		{
+			strlcpy(argv[argc], token, sizeof(token));
+			++argc;
+		}
+	}
+	
+	int i;
+	for(i = argc - 1; i >= 0; i--)
+	{
+		if( push(kpage, &ofs, &argv[i], sizeof(argv[i])) == NULL)
+		{
+			success = false;
+		}
+	}
+	if( push(kpage, &ofs, &argc, sizeof(argc)) == NULL)
+	{
+		success = false;
+	}
+	if( push(kpage, &ofs, &null, sizeof(null)) == NULL )
+	{
+		success = false;
+	}
+	//##push() a null (more precisely &null).
+	//##if push return a NULL, return false
+	
+	//##Push argv addresses (i.e. for the cmd_line added above) in reverse order
+	//##See the stack example on documentation for what "reversed" means
+	//##Push argc, how can we determine argc?
+	//##Push &null
+	//##Should you check for NULL returns?
+	
+	//##Set the stack pointer. INPORTANT! Make sure you use the right value here...
+	*esp = upage + ofs;
+	return success;
+}
+
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, char *cmdline) 
 {
   uint8_t *kpage;
   bool success = false;
@@ -460,9 +552,11 @@ setup_stack (void **esp)
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      uint8_t *upage = ( (uint8_t *) PHYS_BASE) - PGSIZE;
+      success = install_page (upage, kpage, true);
       if (success)
-        *esp = PHYS_BASE;
+        //*esp = PHYS_BASE;
+        success = setup_stack_helper(cmdline, kpage, upage, esp);
       else
         palloc_free_page (kpage);
     }
