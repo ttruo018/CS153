@@ -6,6 +6,7 @@
 #include "threads/vaddr.h"
 
 static void syscall_handler (struct intr_frame *);
+static inline bool get_user (uint8_t *dst, const uint8_t *usrc);
 static uint8_t syscall_arg[] = 
 {
 	0, /*Halt*/
