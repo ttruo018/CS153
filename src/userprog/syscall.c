@@ -166,7 +166,12 @@ void exit (int status)
 	struct thread *cur = thread_current();
 	if(thread_alive(cur->parent))
 	{
-		cur->cp->status = status;
+		struct list_elem *e;
+		for(e = list_begin( &cur-> children); e != list_end(&cur->children); e = list_next(e))
+		{
+			struct child_process *cp = list_entry(e, struct child_process, elem);
+			cp->status = status;
+		}
 	}
 	printf ("%s: exit(%d)\n", cur->name, status);
 	thread_exit();
