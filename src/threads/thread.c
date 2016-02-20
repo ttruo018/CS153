@@ -328,6 +328,20 @@ thread_current (void)
   return t;
 }
 
+bool thread_alive(int tid)
+{
+	struct list_elem *e;
+	for(e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, allelem);
+		if(t->tid == tid)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 /* Returns the running thread's tid. */
 tid_t
 thread_tid (void) 
