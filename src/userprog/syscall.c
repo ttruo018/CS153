@@ -92,7 +92,7 @@ static bool verify_user (const void *uaddr)
 }
 
 static void
-syscall_handler (struct intr_frame *f UNUSED) 
+syscall_handler (struct intr_frame *f ) 
 {
   /*printf ("system call!\n");
   thread_exit ();*/
@@ -117,7 +117,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 			f->eax = halt();
 			break;
 		case 1 :
-			//f->eax = exit();
+			f->eax = exit(args[0]);
 			break;
 		case 2 :
 			//f->eax = exec();
