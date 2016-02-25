@@ -117,7 +117,7 @@ syscall_handler (struct intr_frame *f )
 			f->eax = halt();
 			break;
 		case 1 :
-			f->eax = exit(args[0]);
+			//f->eax = exit(args[0]);
 			break;
 		case 2 :
 			//f->eax = exec();

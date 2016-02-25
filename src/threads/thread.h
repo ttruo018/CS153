@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <threads/synch.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -14,6 +15,14 @@ enum thread_status
     THREAD_DYING        /* About to be destroyed. */
   };
 
+enum process_status
+{
+	PROCESS_STARTING,
+	PROCESS_STARTED,
+	PROCESS_FAILED,
+	PROCESS_DONE,
+	PROCESS_ORPHANED
+};
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
@@ -92,6 +101,8 @@ struct thread
     int64_t wakeupTime;                /* Threads total time until it wakes up */
     struct list lockList;              /* List for locked elements */
     struct list children;
+    struct lock childLock;
+    struct condition childChange;
     int parent;
     int niceValue;                     /* Nice value for advanced BSD*/
     int recent_cpu;                    /* Estimation of total clock ticks recently used */

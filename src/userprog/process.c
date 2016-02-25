@@ -122,14 +122,27 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid ) 
 {
+	lock_acquire(&thread_current()->childLock);
 	struct child_process *cp = get_child_process(child_tid);
-	cp->wait = true;
+	if(cp == NULL)
+	{
+		lock_release(&thread_current()->childLock);
+		return -1;
+	}
+
+	/*cp->wait = true;
 	while (!cp->exit)
 	{
 		//
+	}*/
+	while(cp->status == PROCESS_STARTED)
+	{
+		cond_wait(&thread_current()->childChange, &thread_current()->childLock);
 	}
 	int status = cp->status;
 	remove_child_process(&cp);
+
+	lock_release(&thread_current()->childLock);
 
 	return status;
 }
@@ -138,13 +151,14 @@ process_wait (tid_t child_tid )
 void
 process_exit (void)
 {
-  struct thread *cur = thread_current ();
-  uint32_t *pd;
+    struct thread *cur = thread_current ();
+    uint32_t *pd;
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
-  pd = cur->pagedir;
-  if (pd != NULL) 
+
+    pd = cur->pagedir;
+    if (pd != NULL) 
     {
       /* Correct ordering here is crucial.  We must set
          cur->pagedir to NULL before switching page directories,

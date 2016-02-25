@@ -2,6 +2,7 @@
 #define USERPROG_SYSCALL_H
 
 #include "threads/synch.h"
+#include "threads/thread.h"
 
 struct child_process
 {
@@ -12,6 +13,7 @@ struct child_process
 	int status;
 	struct lock wait_lock;
 	struct list_elem elem;
+	enum process_status stat;
 };
 
 struct child_process * add_child_process (int pid);

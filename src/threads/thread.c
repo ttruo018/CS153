@@ -594,7 +594,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->basePriority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
-
+  lock_init(&t->childLock);
+  cond_init(&t->childChange);
   list_init(&t->lockList); // MUST initialize the thread and put it into lockList
 }
 
