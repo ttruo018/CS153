@@ -1,11 +1,17 @@
+#include "lib/kernel/hash.h"
+#include "filesys/file.h"
+#include "filesys/off_t.h"
 #include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *);
+static struct hash filesys_fdhash;
+static struct lock filesys_lock;
 static inline bool get_user (uint8_t *dst, const uint8_t *usrc);
 static uint8_t syscall_arg[] = 
 {
@@ -23,10 +29,85 @@ static uint8_t syscall_arg[] =
 	1, /*Tell*/
 	1, /*Close*/
 };
+
+struct fd_elem
+{
+	struct hash_elem h_elem;
+	struct list_elem l_elem;
+	int fd;
+	int owner_pid;
+	struct file * file;
+};
+
+static bool verify(const void *uadder)
+{
+	if(uadder == NULL)
+	{
+		return false;
+	}
+	return (uadder < PHYS_BASE && pagedir_get_page(thread_current()->pagedir, uadder) != NULL);
+}
+
+static int allocate_fd(void)
+{
+	static int fd_curr = 2;
+	return fd_curr++;
+}
+
+static unsigned filesys_fdhash_func (const struct hash_elem *e, void *aux)
+{
+	struct fd_elem *elem = hash_entry(e, struct fd_elem, h_elem);
+	return (unsigned) &elem->fd;
+}
+
+static bool filesys_fdhash_less(const struct hash_elem *a, const struct hash_elem *b, void * aux)
+{
+	struct fd_elem *a_fd = hash_entry(a, struct fd_elem, h_elem);
+	struct fd_elem *b_fd = hash_entry(b, struct fd_elem, h_elem);
+	
+	return (&a_fd->fd < &b_fd->fd);
+}
+
+static struct fd_elem * filesys_get_fd_elem(int fd)
+{
+	struct fd_elem s;
+	s.fd = fd;
+	
+	struct hash_elem *f;
+	f = hash_find (&filesys_fdhash, &s.h_elem);
+	
+	if(f == NULL)
+	{
+		return NULL;
+	}
+	struct fd_elem * fd_element = hash_entry(f, struct fd_elem, h_elem);
+	
+	return (thread_current()->tid == fd_element->owner_pid) ? fd_element : NULL;
+}
+
+void halt (void);
+void sys_exit (int status);
+pid_t exec (const char *cmd_line);
+int wait (pid_t pid);
+bool create (const char *file, unsigned initial_size);
+bool remove (const char *file);
+int sys_open (const char *file);
+int filesize (int fd);
+int read (int fd, void *buffer, unsigned size);
+int write (int fd, const void *buffer, unsigned size);
+void seek (int fd, unsigned position);
+unsigned tell (int fd);
+void close (int fd);
+
+struct semaphore file_acc;
+
 void
 syscall_init (void) 
 {
-  intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  	intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+	lock_init(&filesys_lock);
+	hash_init(&filesys_fdhash, filesys_fdhash_func, filesys_fdhash_less, NULL);
+	process_init();
 }
 
 /* Copies SIZE bytes from user address USRC to kernel address DST.
@@ -44,6 +125,7 @@ static void copy_in (void *dst_, const void *usrc_, size_t size)
 		}
 	}
 }
+
 
 /* Creates a copy of user string US in kernel memory and returns it as
  * a page that must be freed with palloc_free_page(). Truncates the string at
@@ -114,28 +196,28 @@ syscall_handler (struct intr_frame *f )
   switch(callNum)
   {
 		case 0 :
-			f->eax = halt();
+			halt();
 			break;
 		case 1 :
-			//f->eax = exit(args[0]);
+			sys_exit(args[0]);
 			break;
 		case 2 :
-			//f->eax = exec();
+			f->eax = exec(args[0]);
 			break;
 		case 3 :
-			//f->eax = wait();
+			f->eax = wait(args[0]);
 			break;
 		case 4 :
-			//f->eax = create();
+			f->eax = create(args[0], args[1]);
 			break;
 		case 5 :
-			//f->eax = remove();
+			f->eax = remove(args[0]);
 			break;
 		case 6 :
-			//f->eax = open();
+			f->eax = sys_open(args[0]);
 			break;
 		case 7 :
-			//f->eax = filesize();
+			f->eax = filesize(args[0]);
 			break;
 		case 8 :
 			//f->eax = read();
@@ -161,7 +243,7 @@ void halt (void)
 	shutdown_power_off();
 }
 
-void exit (int status)
+void sys_exit (int status)
 {
 	struct thread *cur = thread_current();
 	if(thread_alive(cur->parent))
@@ -177,6 +259,121 @@ void exit (int status)
 	thread_exit();
 }
 
+pid_t exec(const char * cmd_line)
+{
+	if(cmd_line == NULL || !verify(cmd_line))
+	{
+		sys_exit(-1);
+	}
+	char * command = copy_in_string(cmd_line);
+	pid_t pid = process_execute(command);
+	
+	return pid == TID_ERROR ? -1 : pid;
+}
+
+int wait(pid_t pid)
+{
+	return process_wait(pid);
+}
+
+bool create (const char *file, unsigned initial_size)
+{
+	if(file != NULL || !verify(file))
+	{
+		return false;
+	}
+	return filesys_create(file, initial_size);
+}
+
+bool remove(const char *path)
+{
+	if(!verify(path))
+	{
+		return false;
+	}
+	
+	bool success = false;
+	struct file * file = filesys_open(path);
+	if(file)
+	{
+		file_close(file);
+		success = filesys_remove(path);
+	}
+	return success;
+}
+
+int fd_open(const char * file)
+{
+	struct file * fileOpen = filesys_open(file);
+	if(!fileOpen)
+	{
+		sys_exit(-1);
+	}
+	
+	struct fd_elem * hash = malloc(sizeof(struct fd_elem));
+	if(hash == NULL)
+	{
+		file_close(file);
+		return -1;
+	}
+	
+	hash->fd = allocate_fd();
+	hash->file = fileOpen;	
+	hash->owner_pid = thread_current()->tid;
+	
+	lock_acquire(&filesys_lock);
+	hash_insert(&filesys_fdhash, &hash->l_elem);
+	lock_release(&filesys_lock);
+	
+	list_push_back(&thread_current()->openFiles, &hash->l_elem);
+	return hash->fd;
+}
+
+int sys_open(const char *file)
+{
+	if(!verify(file))
+	{
+		return -1;
+	}
+	return fd_open(file);
+}
+
+int filesize(int fd)
+{
+	struct file * fileOpen;
+	lock_acquire(&filesys_lock);
+	struct fd_elem * fileFound = filesys_get_fd_elem(fd);
+	lock_release(&filesys_lock);
+	if(fileFound == NULL)
+	{
+		return -1;
+	}
+	fileOpen = fileFound->file;
+	return file_length(fileOpen);
+}
+
+int fd_read(int fd, void *buffer, unsigned size)
+{
+	struct file * fileOpen;
+	lock_acquire(&filesys_lock);
+	struct fd_elem * fileFound = filesys_get_fd_elem(fd);
+	lock_release(&filesys_lock);
+	if(fileFound == NULL) 
+	{
+		return -1;
+	}
+	off_t bytes_read = file_read(fileOpen, buffer, size);
+	return bytes_read;
+}
+
+/*void sys_exit(int status)
+{
+	printf("%s: exit(%i)\n", thread_current()->name, status);
+	thread_current()->wait->status = status;
+	lock_release(&thread_current()->wait->wait_lock);
+	thread_exit();
+	NOT_REACHED();
+}*/
 
 struct child_process * add_child_process ( int pid) 
 {

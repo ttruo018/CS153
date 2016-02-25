@@ -4,6 +4,8 @@
 #include "threads/synch.h"
 #include "threads/thread.h"
 
+typedef int pid_t;
+
 struct child_process
 {
 	int pid;
