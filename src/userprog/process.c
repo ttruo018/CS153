@@ -8,6 +8,7 @@
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -58,13 +59,22 @@ process_execute (const char *file_name)
 
 	//struct child_status *child_status = malloc(sizeof(struct child_status));
 	
+	//initializing an interrupt frame
+	struct intr_frame if_;
+	memset (&if_, 0, sizeof if_);
+	if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
+	if_.cs = SEL_UCSEG;
+	if_.eflags = FLAG_IF | FLAG_MBS;
+	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, NULL);
 	if (tid == TID_ERROR) 
 	{
 		sema_down(&exec.load_sema);
-		//if (load(thread_name, eip?, esp?) )
-		list_push_back(&thread_current()->children, &exec.child);
+		if (load(file_name, &if_.eip, &if_.esp) ) {
+			list_push_back(&thread_current()->children, &exec.child);
+		}
+		sema_up(&exec.load_sema);
 	}
 	return tid;
 }
@@ -110,11 +120,18 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid ) 
 {
-	lock_acquire(&thread_current()->child_lock);
-		
-  return -1;
+	struct child_process *cp = get_child_process(child_tid);
+	cp->wait = true;
+	while (!cp->exit)
+	{
+		//
+	}
+	int status = cp->status;
+	remove_child_process(&cp);
+
+	return status;
 }
 
 /* Free the current process's resources. */
