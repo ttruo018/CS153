@@ -74,11 +74,15 @@ process_execute (const char *file_name)
 	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, NULL);
-	if (tid == TID_ERROR) 
+	if (tid != TID_ERROR) 
 	{
 		sema_down(&exec.load_sema);
 		if (load(file_name, &if_.eip, &if_.esp) ) {
 			list_push_back(&thread_current()->children, &exec.child);
+		}
+		else
+		{
+			tid = TID_ERROR;
 		}
 		sema_up(&exec.load_sema);
 	}
