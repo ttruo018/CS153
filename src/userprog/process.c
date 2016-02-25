@@ -73,7 +73,7 @@ process_execute (const char *file_name)
 	if_.eflags = FLAG_IF | FLAG_MBS;
 	
 	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (thread_name, PRI_DEFAULT, start_process, NULL);
+	tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
 	if (tid != TID_ERROR) 
 	{
 		sema_down(&exec.load_sema);
