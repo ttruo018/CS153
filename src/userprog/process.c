@@ -149,15 +149,32 @@ process_wait (tid_t child_tid )
 		return -1;
 	}
 
+	struct child_process * child = NULL;
+
+	struct list_elem *e = list_begin(&thread_current()->children);
+	for(; e != list_end(&thread_current()->children); e = list_next(e))
+	{
+		struct child_process * c = list_entry(e, struct child_process, elem);
+		if(c->pid == child_tid)
+		{
+			c = child;
+			break;
+		}
+	}
+	
+	if(!child)
+	{
+		return -1;
+	}
 	/*cp->wait = true;
 	while (!cp->exit)
 	{
 		//
 	}*/
-	while(cp->status == PROCESS_STARTED)
+	/*while(cp->status == PROCESS_STARTED)
 	{
 		cond_wait(&thread_current()->childChange, &thread_current()->childLock);
-	}
+	}*/
 	int status = cp->status;
 	remove_child_process(&cp);
 
