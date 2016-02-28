@@ -112,7 +112,7 @@ start_process (void *file_name_)
   {
 	lock_init(&exec->child->wait_lock);
 	exec->child->pid = thread_current()->tid;
-
+	exec->child->exit = -1;
   	sema_init(&exec->child->sema, 0);
   }
   exec->run_success = success;
@@ -150,9 +150,10 @@ process_wait (tid_t child_tid )
 
 	struct child_process * child = NULL;
 	struct list_elem *e;
+	struct child_process * c = NULL;
 	for(e = list_begin(&thread_current()->children); e != list_end(&thread_current()->children); e = list_next(e))
 	{
-		struct child_process * c = list_entry(e, struct child_process, elem);
+		c = list_entry(e, struct child_process, elem);
 		if(c->pid == child_tid)
 		{
 			child = c;
@@ -175,7 +176,7 @@ process_wait (tid_t child_tid )
 	}*/
 	sema_down(&child->sema);
 
-	remove_child_process(e);
+	remove_child_process(c);
 
 	return child->status;
 }
