@@ -165,7 +165,7 @@ process_wait (tid_t child_tid )
 		}
 	}
 	
-	if(!child)
+	if(child == NULL)
 	{
 		return -1;
 	}
@@ -178,12 +178,11 @@ process_wait (tid_t child_tid )
 	{
 		cond_wait(&thread_current()->childChange, &thread_current()->childLock);
 	}*/
-	int status = cp->status;
-	remove_child_process(&cp);
+	remove_child_process(e);
 
 	lock_release(&thread_current()->childLock);
 
-	return status;
+	return cp->status;
 }
 
 /* Free the current process's resources. */
