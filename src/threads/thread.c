@@ -421,7 +421,8 @@ thread_set_priority (int new_priority)
 int
 thread_get_priority (void) 
 {
-  return get_pri(thread_current());
+  //return get_pri(thread_current());
+	return thread_current()->priority;
 }
 
 /* Gets thread t's maximum donated priority, or PRI_MIN if no donations */
