@@ -111,9 +111,9 @@ start_process (void *file_name_)
   if(success)
   {
 	lock_init(&exec->child->wait_lock);
-	exec->child->pid = thread_current()->tid;
-	exec->child->status = -1;
   	sema_init(&exec->child->sema, 0);
+	exec->child->pid = thread_current()->tid;
+	//exec->child->status = 0;
   }
   exec->run_success = success;
   sema_up(&exec->load_sema);
