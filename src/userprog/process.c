@@ -328,14 +328,14 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
-	if( (strcspn(cmd_line, " ")- 1) <= (NAME_MAX + 2) ) 
-	{
+	//if( (strcspn(cmd_line, " ")- 1) <= (NAME_MAX + 2) ) 
+	//{
 		strlcpy(file_name, strtok_r(cmd_line, " ", &charPointer), sizeof(file_name));
-	}
+	//}
 
   /* Open executable file. */
   file = filesys_open (file_name);
-  t->execFile = file;
+  thread_current()->execFile = file;
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -426,7 +426,7 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   //file_close (file); Add this to process exit
-  file_close(file);
+  //file_close(file);
   return success;
 }
 
