@@ -156,6 +156,7 @@ process_wait (tid_t child_tid )
 		c = list_entry(e, struct child_process, elem);
 		if(c->pid == child_tid)
 		{
+			sema_down(&c->sema);
 			child = c;
 			break;
 		}
@@ -174,11 +175,10 @@ process_wait (tid_t child_tid )
 	{
 		cond_wait(&thread_current()->childChange, &thread_current()->childLock);
 	}*/
-	sema_down(&child->sema);
-
+	int status = c->status;
 	remove_child_process(c);
 
-	return child->status;
+	return status;
 }
 
 /* Free the current process's resources. */
