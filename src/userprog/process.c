@@ -197,7 +197,7 @@ process_exit (void)
     {
 	curProcess = cur->wait;
 	printf("%s: exit(%d)\n", cur->name, curProcess->status);
-	lock_release(&curProcess->wait_lock);
+	sema_up(&curProcess->sema);
     }
     
     for(e = list_begin(&cur->children); e != list_end(&cur->children); e = list_next(e))
