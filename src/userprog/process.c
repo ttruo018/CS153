@@ -101,7 +101,11 @@ start_process (void *file_name_)
   /* If load failed, quit. */
   //palloc_free_page (file_name);
   if (!success) 
-    thread_exit ();
+  {
+  	exec->run_success = success;
+  	sema_up(&exec->load_sema);
+    	thread_exit ();
+  }
   else
   {
 	thread_current()->wait = malloc(sizeof *exec->child);
@@ -109,9 +113,10 @@ start_process (void *file_name_)
 
 	lock_acquire(&exec->child->wait_lock);
 	exec->child->pid = thread_current()->tid;
+
+  	exec->run_success = success;
+  	sema_up(&exec->load_sema);
   }
-  exec->run_success = success;
-  sema_up(&exec->load_sema);
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
