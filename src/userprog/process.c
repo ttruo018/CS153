@@ -567,8 +567,6 @@ setup_stack_helper (const char * cmd_line, uint8_t * kpage, uint8_t * upage, voi
 	char ** argv; //Max argument is 64 (for now)
 	int argc = 0;
 	char * token;
-	bool parse_end = false;
-	bool success = true;
 	//##Probably need some other variables here as well
 	
 	//##Parse and put in command line arguments, push each value
@@ -621,15 +619,15 @@ setup_stack_helper (const char * cmd_line, uint8_t * kpage, uint8_t * upage, voi
 
         if( push(kpage, &ofs, &argv, sizeof(argv)) == NULL)
         {
-                success = false;
+                return false;
         }
         if( push(kpage, &ofs, &argc, sizeof(argc)) == NULL)
         {
-                success = false;
+                return false;
         }
         if( push(kpage, &ofs, &null, sizeof(null)) == NULL )
         {
-                success = false;
+		return false;
         }
 	//##push() a null (more precisely &null).
 	//##if push return a NULL, return false
@@ -642,7 +640,7 @@ setup_stack_helper (const char * cmd_line, uint8_t * kpage, uint8_t * upage, voi
 	
 	//##Set the stack pointer. INPORTANT! Make sure you use the right value here...
 	*esp = upage + ofs;
-	return success;
+	return true;
 }
 
 /* Create a minimal stack by mapping a zeroed page at the top of
