@@ -107,7 +107,6 @@ syscall_init (void)
   	intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 	lock_init(&filesys_lock);
 	hash_init(&filesys_fdhash, filesys_fdhash_func, filesys_fdhash_less, NULL);
-	process_init();
 }
 
 /* Copies SIZE bytes from user address USRC to kernel address DST.
@@ -182,6 +181,10 @@ syscall_handler (struct intr_frame *f )
   int args[3];
   int numOfArgs;
 
+  if(!verify_user(f->esp))
+  {
+ 	sys_exit(-1);
+  }
   //##Get syscall number
   copy_in (&callNum, f->esp, sizeof callNum);
 
@@ -234,6 +237,8 @@ syscall_handler (struct intr_frame *f )
 		case 12 :
 			//f->eax = close();
 			break;
+		default:
+			thread_exit();
 	
   }
 }
