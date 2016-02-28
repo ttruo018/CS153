@@ -477,6 +477,7 @@ static int console_write(const char * buffer, unsigned size) // chunks of 128 by
 static int sys_write(int fd, const void * buffer, unsigned size)
 {
 	int total_bytes = 0;
+	lock_acquire(&filesys_lock);
 	while(size > 0)
 	{
 		unsigned bytes_on_page = PGSIZE - pg_ofs(buffer);
@@ -485,6 +486,7 @@ static int sys_write(int fd, const void * buffer, unsigned size)
 		
 		if(!verify_user(buffer))
 		{
+			lock_release(&filesys_lock);
 			sys_exit(-1);
 		}
 		
@@ -506,6 +508,7 @@ static int sys_write(int fd, const void * buffer, unsigned size)
 			return total_bytes;
 		}	
 	}
+	lock_release(&filesys_lock);
 	return total_bytes;
 }
 
