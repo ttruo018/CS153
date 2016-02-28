@@ -173,9 +173,9 @@ process_wait (tid_t child_tid )
 	{
 		cond_wait(&thread_current()->childChange, &thread_current()->childLock);
 	}*/
-	remove_child_process(e);
+	sema_down(&child->sema);
 
-	lock_release(&child->wait_lock);
+	remove_child_process(e);
 
 	return child->status;
 }
