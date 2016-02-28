@@ -48,7 +48,7 @@ process_execute (const char *file_name)
 	tid_t tid;
 	
 	strlcpy(exec.file_name, file_name, sizeof(exec.file_name));
-	sema_init(&exec.load_sema, 1);
+	sema_init(&exec.load_sema, 0);
 
   	/* Make a copy of FILE_NAME.
      	Otherwise there's a race between the caller and load(). */
