@@ -109,7 +109,7 @@ start_process (void *file_name_)
   else
   {
 	thread_current()->wait = malloc(sizeof *exec->child);
-	exec->child->pid = thread_current()->wait;
+	exec->child = thread_current()->wait;
 
 	lock_acquire(&exec->child->wait_lock);
 	exec->child->pid = thread_current()->tid;
