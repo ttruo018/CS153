@@ -152,12 +152,14 @@ process_wait (tid_t child_tid )
 	struct child_process * child = NULL;
 	struct list_elem *e;
 	struct child_process * c = NULL;
+	int status = -1;
 	for(e = list_begin(&thread_current()->children); e != list_end(&thread_current()->children); e = list_next(e))
 	{
 		c = list_entry(e, struct child_process, elem);
 		if(c->pid == child_tid)
 		{
 			sema_down(&c->sema);
+			status = c->status;
 			break;
 		}
 	}
@@ -171,7 +173,6 @@ process_wait (tid_t child_tid )
 	{
 		cond_wait(&thread_current()->childChange, &thread_current()->childLock);
 	}*/
-	int status = c->status;
 	remove_child_process(c);
 
 	return status;
@@ -189,6 +190,7 @@ process_exit (void)
     struct list_elem *e;
     struct list_elem *f;
     struct child_process *curProcess;
+    file_close(cur->execFile);
 
     if(cur->wait != NULL)
     {
@@ -333,6 +335,7 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
 
   /* Open executable file. */
   file = filesys_open (file_name);
+  t->execFile = file;
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -423,6 +426,7 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   //file_close (file); Add this to process exit
+  file_close(file);
   return success;
 }
 

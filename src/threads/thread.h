@@ -117,6 +117,7 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
     struct child_process * wait;
     struct list openFiles;
+    struct file * execFile;
 #endif
 
     /* Owned by thread.c. */

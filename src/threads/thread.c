@@ -255,11 +255,11 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-  /*struct thread * m = highestPri(); // you want the thread with highest priority to run first 
+  struct thread * m = highestPri(); // you want the thread with highest priority to run first 
   if(m->priority > thread_current()->priority)
   {
 	thread_yield();
-  }*/
+  }
 
   return tid;
 }
