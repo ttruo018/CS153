@@ -59,8 +59,8 @@ process_execute (const char *file_name)
 	char *saveptr;
 	if((strcspn(file_name, " ")-1) <= 16)
 	{
-		char * token = strtok_r(file_name, " ", &saveptr);
-		strlcpy(thread_name, token, sizeof(token));
+		strlcpy(thread_name, file_name, sizeof(thread_name));
+		strtok_r(thread_name, " ", &saveptr);
 	}
 
 	//struct child_status *child_status = malloc(sizeof(struct child_status));
