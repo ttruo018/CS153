@@ -139,6 +139,11 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid ) 
 {
+	if(list_empty(&thread_current()->children))
+	{
+		return -1;
+	}
+
 	lock_acquire(&thread_current()->childLock);
 	struct child_process *cp = get_child_process(child_tid);
 	if(cp == NULL)
@@ -149,13 +154,13 @@ process_wait (tid_t child_tid )
 
 	struct child_process * child = NULL;
 
-	struct list_elem *e = list_begin(&thread_current()->children);
-	for(; e != list_end(&thread_current()->children); e = list_next(e))
+	struct list_elem *e;
+	for(e = list_begin(&thread_current()->children); e != list_end(&thread_current()->children); e = list_next(e))
 	{
 		struct child_process * c = list_entry(e, struct child_process, elem);
 		if(c->pid == child_tid)
 		{
-			c = child;
+			child = c;
 			break;
 		}
 	}
