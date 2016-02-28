@@ -593,7 +593,7 @@ setup_stack_helper (const char * cmd_line, uint8_t * kpage, uint8_t * upage, voi
 
         if(!cpy)
                 return false;
-        if(push(kpage, &ofs, &null, sizeof NULL) == NULL)
+        if(push(kpage, &ofs, &null, sizeof null) == NULL)
                 return false;
 
         //argv = malloc(argv_size * sizeof (char*));
