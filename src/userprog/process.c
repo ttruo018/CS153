@@ -47,7 +47,7 @@ process_execute (const char *file_name)
 	char thread_name[16];
 	tid_t tid;
 	
-	strlcpy(exec.file_name, thread_name, sizeof(exec.file_name));
+	//strlcpy(exec.file_name, thread_name, sizeof(exec.file_name));
 	sema_init(&exec.load_sema, 1);
 
   	/* Make a copy of FILE_NAME.
@@ -60,7 +60,7 @@ process_execute (const char *file_name)
 	if((strcspn(file_name, " ")-1) <= 16)
 	{
 		char * token = strtok_r(file_name, " ", &saveptr);
-		strlcpy(token, thread_name, sizeof(token));
+		strlcpy(thread_name, token, sizeof(token));
 	}
 
 	//struct child_status *child_status = malloc(sizeof(struct child_status));
