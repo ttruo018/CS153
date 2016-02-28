@@ -47,7 +47,8 @@ process_execute (const char *file_name)
 	char thread_name[16];
 	tid_t tid;
 	
-	strlcpy(exec.file_name, file_name, sizeof(exec.file_name));
+	//strlcpy(exec.file_name, file_name, sizeof(exec.file_name));
+	exec.file_name = file_name;
 	sema_init(&exec.load_sema, 0);
 
   	/* Make a copy of FILE_NAME.
