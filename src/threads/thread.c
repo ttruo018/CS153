@@ -597,6 +597,8 @@ init_thread (struct thread *t, const char *name, int priority)
   lock_init(&t->childLock);
   cond_init(&t->childChange);
   list_init(&t->lockList); // MUST initialize the thread and put it into lockList
+  list_init(&t->openFiles);
+  list_init(&t->children);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
