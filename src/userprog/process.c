@@ -77,7 +77,7 @@ process_execute (const char *file_name)
 		{
 			tid = TID_ERROR;
 		}
-		sema_up(&exec.load_sema);
+		//sema_up(&exec.load_sema);
 	}
 	return tid;
 }
