@@ -24,5 +24,6 @@ struct child_process * get_child_process (int pid);
 void remove_child_process (struct child_process *cp);
 
 void syscall_init (void);
+void sys_exit(int);
 
 #endif /* userprog/syscall.h */

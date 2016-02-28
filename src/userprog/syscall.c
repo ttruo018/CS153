@@ -122,7 +122,7 @@ static struct file * filesys_get_file(int fd)
 	return f != NULL ? f->file : NULL;
 }
 static void sys_halt (void);
-static void sys_exit (int status);
+void sys_exit (int status);
 static pid_t sys_exec (const char *cmd_line);
 static int sys_wait (pid_t pid);
 static bool sys_create (const char *file, unsigned initial_size);
@@ -284,7 +284,7 @@ void halt (void)
 	shutdown_power_off();
 }
 
-static void sys_exit (int status)
+void sys_exit (int status)
 {
 	struct thread *cur = thread_current();
 	if(thread_alive(cur->parent))
