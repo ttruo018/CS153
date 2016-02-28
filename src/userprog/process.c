@@ -325,7 +325,7 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
 
 	//if( (strcspn(cmd_line, " ")- 1) <= (NAME_MAX + 2) ) 
 	//{
-		strlcpy(file_name, strtok_r(cmd_line, " ", &charPointer), sizeof(file_name));
+  strlcpy(file_name, strtok_r(cmd_line, " ", &charPointer), sizeof(file_name));
 	//}
 
   /* Open executable file. */

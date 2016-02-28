@@ -85,19 +85,55 @@ static struct fd_elem * filesys_get_fd_elem(int fd)
 	return (thread_current()->tid == fd_element->owner_pid) ? fd_element : NULL;
 }
 
-void halt (void);
-void sys_exit (int status);
-pid_t exec (const char *cmd_line);
-int wait (pid_t pid);
-bool create (const char *file, unsigned initial_size);
-bool remove (const char *file);
-int sys_open (const char *file);
-int filesize (int fd);
-int read (int fd, void *buffer, unsigned size);
-int write (int fd, const void *buffer, unsigned size);
-void seek (int fd, unsigned position);
-unsigned tell (int fd);
-void close (int fd);
+
+static void filesys_free_fdelem(struct fd_elem * elem)
+{
+	file_close(elem->file);
+	lock_acquire(&filesys_lock);
+	hash_delete(&filesys_fdhash, &elem->h_elem);
+	lock_release(&filesys_lock);
+	list_remove(&elem->l_elem);
+	free(elem);
+}
+
+static struct fd_elem * filesys_get_fdelem(int fd)
+{
+	struct fd_elem s;
+	s.fd = fd;
+	
+	struct hash_elem * f;
+	f = hash_find(&filesys_fdhash, &s.h_elem);
+	
+	if(!f)
+	{
+		return NULL;
+	}
+	
+	struct fd_elem * fd_element = hash_entry(f, struct fd_elem, h_elem);
+	
+	return (thread_current()->tid == fd_element->owner_pid ? fd_element : NULL);
+}
+
+static struct file * filesys_get_file(int fd)
+{
+	lock_acquire(&filesys_lock);
+	struct fd_elem * f = filesys_get_fdelem(fd);
+	lock_release(&filesys_lock);
+	return f != NULL ? f->file : NULL;
+}
+static void sys_halt (void);
+static void sys_exit (int status);
+static pid_t sys_exec (const char *cmd_line);
+static int sys_wait (pid_t pid);
+static bool sys_create (const char *file, unsigned initial_size);
+static bool sys_remove (const char *file);
+static int sys_open (const char *file);
+static int sys_filesize (int fd);
+static int sys_read (int fd, void *buffer, unsigned size);
+static int sys_write (int fd, const void *buffer, unsigned size);
+static void sys_seek (int fd, unsigned position);
+static unsigned sys_tell (int fd);
+static void sys_close (int fd);
 
 struct semaphore file_acc;
 
@@ -205,37 +241,37 @@ syscall_handler (struct intr_frame *f )
 			sys_exit(args[0]);
 			break;
 		case 2 :
-			f->eax = exec(args[0]);
+			f->eax = sys_exec(args[0]);
 			break;
 		case 3 :
-			f->eax = wait(args[0]);
+			f->eax = sys_wait(args[0]);
 			break;
 		case 4 :
-			f->eax = create(args[0], args[1]);
+			f->eax = sys_create(args[0], args[1]);
 			break;
 		case 5 :
-			f->eax = remove(args[0]);
+			f->eax = sys_remove(args[0]);
 			break;
 		case 6 :
 			f->eax = sys_open(args[0]);
 			break;
 		case 7 :
-			f->eax = filesize(args[0]);
+			f->eax = sys_filesize(args[0]);
 			break;
 		case 8 :
-			//f->eax = read();
+			f->eax = sys_read(args[0], args[1], args[2]);
 			break;
 		case 9 :
-			//f->eax = write();
+			f->eax = sys_write(args[0], args[1], args[2]);
 			break;
 		case 10 :
-			//f->eax = seek();
+			sys_seek(args[0], args[1]);
 			break;
 		case 11 :
-			//f->eax = tell();
+			f->eax = sys_tell(args[0]);
 			break;
 		case 12 :
-			//f->eax = close();
+			sys_close(args[0]);
 			break;
 		default:
 			thread_exit();
@@ -248,7 +284,7 @@ void halt (void)
 	shutdown_power_off();
 }
 
-void sys_exit (int status)
+static void sys_exit (int status)
 {
 	struct thread *cur = thread_current();
 	if(thread_alive(cur->parent))
@@ -264,7 +300,7 @@ void sys_exit (int status)
 	thread_exit();
 }
 
-pid_t exec(const char * cmd_line)
+static pid_t sys_exec(const char * cmd_line)
 {
 	if(cmd_line == NULL || !verify(cmd_line))
 	{
@@ -276,12 +312,12 @@ pid_t exec(const char * cmd_line)
 	return pid == TID_ERROR ? -1 : pid;
 }
 
-int wait(pid_t pid)
+static int sys_wait(pid_t pid)
 {
 	return process_wait(pid);
 }
 
-bool create (const char *file, unsigned initial_size)
+static bool sys_create (const char *file, unsigned initial_size)
 {
 	if(file != NULL || !verify(file))
 	{
@@ -290,7 +326,7 @@ bool create (const char *file, unsigned initial_size)
 	return filesys_create(file, initial_size);
 }
 
-bool remove(const char *path)
+static bool sys_remove(const char *path)
 {
 	if(!verify(path))
 	{
@@ -334,7 +370,7 @@ int fd_open(const char * file)
 	return hash->fd;
 }
 
-int sys_open(const char *file)
+static int sys_open(const char *file)
 {
 	if(!verify(file))
 	{
@@ -343,7 +379,7 @@ int sys_open(const char *file)
 	return fd_open(file);
 }
 
-int filesize(int fd)
+static int sys_filesize(int fd)
 {
 	struct file * fileOpen;
 	lock_acquire(&filesys_lock);
@@ -369,6 +405,138 @@ int fd_read(int fd, void *buffer, unsigned size)
 	}
 	off_t bytes_read = file_read(fileOpen, buffer, size);
 	return bytes_read;
+}
+
+static int conRead(char * buffer, unsigned size)
+{
+	unsigned i;
+	for(i = 0; i < size; i++)
+	{
+		*(buffer++) = input_getc();
+	}
+	return size;
+}
+
+static int sys_read(int fd, void * buffer, unsigned size)
+{
+	int totalBytes = 0;
+	while(size > 0)
+	{
+		unsigned bytes_on_page = PGSIZE - pg_ofs (buffer);
+		unsigned bytes_to_read = (bytes_on_page) > size ? size : bytes_on_page;
+		int bytes_read = 0;
+		
+		if(!verify_user(buffer) || !verify_user(buffer+size))
+		{
+			sys_exit(-1);
+		}
+		if(fd == STDIN_FILENO)
+		{
+			bytes_read = conRead(buffer, size);
+		}
+		else
+		{
+			bytes_read = fd_read(fd, buffer, size);
+		}
+		totalBytes += bytes_read;
+		size -= bytes_read;
+		buffer += bytes_read;
+		
+		if(bytes_read != (int)bytes_to_read)
+		{
+			return totalBytes;
+		}
+	}
+	return totalBytes;
+}
+
+int fd_write(int fd, const void * buffer, unsigned size)
+{
+	struct file * fileOpen = filesys_get_file(fd);
+	if(fileOpen == NULL)// || file_is_dir(fileOpen))
+	{
+		return -1;
+	}
+	off_t bytes_written = file_write(fileOpen, buffer, size);
+	return bytes_written;
+}
+
+static int console_write(const char * buffer, unsigned size) // chunks of 128 bytes each
+{
+	unsigned charsLeft = size;
+	while(charsLeft > 128) 
+	{
+		putbuf(buffer, 128); 
+		buffer = (const char *) buffer + 128; 
+		charsLeft -= 128; 
+	}
+	putbuf(buffer, charsLeft);
+	return size;
+}
+
+static int sys_write(int fd, const void * buffer, unsigned size)
+{
+	int total_bytes = 0;
+	while(size > 0)
+	{
+		unsigned bytes_on_page = PGSIZE - pg_ofs(buffer);
+		unsigned bytes_to_write = (bytes_on_page) > size ? size : bytes_on_page;
+		int bytes_written;
+		
+		if(!verify_user(buffer))
+		{
+			sys_exit(-1);
+		}
+		
+		if(fd == STDOUT_FILENO)
+		{
+			bytes_written = console_write(buffer, size);
+		}
+		else
+		{
+			bytes_written = fd_write(fd, buffer, size);
+		}
+		
+		total_bytes += bytes_written;
+		size -= bytes_written;
+		buffer += bytes_written;
+
+		if(bytes_written != (int) bytes_to_write)
+		{
+			return total_bytes;
+		}	
+	}
+	return total_bytes;
+}
+
+static void fd_seek(int fd, unsigned position)
+{
+	struct file * fileOpen = filesys_get_file(fd);
+	if(fileOpen == NULL)// || file_is_dir(fileOpen))
+	{
+		return;
+	}
+	file_seek(fileOpen, position);
+}
+
+static void sys_seek(int fd, unsigned position)
+{
+	fd_seek(fd, position);
+}
+
+static unsigned sys_tell (int fd)
+{
+	struct file * fileOpen = filesys_get_file(fd);
+	return file_tell(fileOpen);
+} 
+
+static void sys_close(int fd)
+{
+	struct fd_elem * elem = filesys_get_fdelem(fd);
+	if(!elem)
+	{
+		filesys_free_fdelem(elem);
+	}
 }
 
 /*void sys_exit(int status)
