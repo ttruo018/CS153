@@ -112,7 +112,7 @@ start_process (void *file_name_)
   {
 	lock_init(&exec->child->wait_lock);
 	exec->child->pid = thread_current()->tid;
-	exec->child->exit = -1;
+	exec->child->status = -1;
   	sema_init(&exec->child->sema, 0);
   }
   exec->run_success = success;
