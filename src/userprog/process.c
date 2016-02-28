@@ -71,7 +71,7 @@ process_execute (const char *file_name)
 	{
 		sema_down(&exec.load_sema);
 		if (exec.run_success){
-			list_push_back(&thread_current()->children, &exec.child);
+			list_push_back(&thread_current()->children, &exec.child->elem);
 		}
 		else
 		{
