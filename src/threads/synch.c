@@ -134,11 +134,11 @@ sema_up (struct semaphore *sema)
   sema->value++;
   intr_set_level (old_level);
 
-  struct thread * m = highestPri();
+  /*struct thread * m = highestPri();
   if(m->priority > thread_current()->priority)
   {
  	thread_yield(); 
-  }
+  }*/
 }
 
 static void sema_test_helper (void *sema_);
@@ -219,7 +219,7 @@ lock_acquire (struct lock *lock)
 
   sema_down (&lock->semaphore); // once lock acquired, have to push_back into our thread's lockList to check priority among waiters
   lock->holder = thread_current ();
-  list_push_back(&thread_current()->lockList, &lock->donorElem);
+ // list_push_back(&thread_current()->lockList, &lock->donorElem);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -253,12 +253,12 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  list_remove(&lock->donorElem);
+  //list_remove(&lock->donorElem);
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
   
-  thread_current()->priority = thread_current()->basePriority; // must put back thread's base priority in for its own priority + donation priority
+  //thread_current()->priority = thread_current()->basePriority; // must put back thread's base priority in for its own priority + donation priority
 }
 
 /* Returns true if the current thread holds LOCK, false

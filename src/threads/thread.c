@@ -411,7 +411,7 @@ thread_set_priority (int new_priority)
 {
   thread_current () ->basePriority = new_priority; // save base priority in order to return it back to normal after sema_up
   thread_current () ->priority  = new_priority;
-  struct thread * t = highestPri(); 
+  //struct thread * t = highestPri(); 
   /*if(new_priority < t-> priority) { // thread with highest pri needs to run first
 	  thread_yield();	    // everything else gets yielded
   }*/
