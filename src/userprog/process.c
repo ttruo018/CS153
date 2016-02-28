@@ -192,6 +192,22 @@ process_exit (void)
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
+    struct list_elem *e;
+    struct list_elem *f;
+    struct child_process *curProcess;
+
+    if(cur->wait != NULL)
+    {
+	curProcess = cur->wait;
+	printf("%s: exit(%d)\n", cur->name, curProcess->status);
+	sema_up(&curProcess->load_sema);
+    }
+    
+    for(e = list_begin(&cur->children); e != list_end(&cur->children); e = list_next(e))
+    {
+   	curProcess = list_entry(e, struct childProcess, elem);
+	f = list_remove(e);
+    }
 
     pd = cur->pagedir;
     if (pd != NULL) 
