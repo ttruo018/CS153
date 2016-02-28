@@ -162,10 +162,6 @@ process_wait (tid_t child_tid )
 		}
 	}
 	
-	if(child == NULL)
-	{
-		return -1;
-	}
 	/*cp->wait = true;
 	while (!cp->exit)
 	{
