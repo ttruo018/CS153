@@ -144,16 +144,7 @@ process_wait (tid_t child_tid )
 		return -1;
 	}
 
-	lock_acquire(&thread_current()->childLock);
-	struct child_process *cp = get_child_process(child_tid);
-	if(cp == NULL)
-	{
-		lock_release(&thread_current()->childLock);
-		return -1;
-	}
-
 	struct child_process * child = NULL;
-
 	struct list_elem *e;
 	for(e = list_begin(&thread_current()->children); e != list_end(&thread_current()->children); e = list_next(e))
 	{
@@ -180,9 +171,9 @@ process_wait (tid_t child_tid )
 	}*/
 	remove_child_process(e);
 
-	lock_release(&thread_current()->childLock);
+	lock_release(&child->wait_lock);
 
-	return cp->status;
+	return child->status;
 }
 
 /* Free the current process's resources. */
