@@ -564,7 +564,7 @@ setup_stack_helper (const char * cmd_line, uint8_t * kpage, uint8_t * upage, voi
 	size_t ofs = PGSIZE; //##Used in push!
 	char * const null = NULL; //##Used for pushing nulls
 	char * ptr; //##strtok_r usage
-	char * argv[64]; //Max argument is 64 (for now)
+	char ** argv; //Max argument is 64 (for now)
 	int argc = 0;
 	char * token;
 	bool parse_end = false;
@@ -573,7 +573,7 @@ setup_stack_helper (const char * cmd_line, uint8_t * kpage, uint8_t * upage, voi
 	
 	//##Parse and put in command line arguments, push each value
 	//##if any push() returns NULL, return false
-	while(parse_end)
+	/*(while(parse_end)
 	{
 		if(argc >= 64)
 		{
@@ -590,24 +590,47 @@ setup_stack_helper (const char * cmd_line, uint8_t * kpage, uint8_t * upage, voi
 			strlcpy(argv[argc], token, sizeof(token));
 			++argc;
 		}
-	}
-	
-	int i;
-	for(i = argc - 1; i >= 0; i--)
-	{
-		if( push(kpage, &ofs, &argv[i], sizeof(argv[i])) == NULL)
-		{
-			success = false;
-		}
-	}
-	if( push(kpage, &ofs, &argc, sizeof(argc)) == NULL)
-	{
-		success = false;
-	}
-	if( push(kpage, &ofs, &null, sizeof(null)) == NULL )
-	{
-		success = false;
-	}
+	}*/
+	char * cpy = push(kpage, &ofs, cmd_line, strlen(cmd_line) + 1);
+
+        if(!cpy)
+                return false;
+        if(push(kpage, &ofs, &null, sizeof NULL) == NULL)
+                return false;
+
+        //argv = malloc(argv_size * sizeof (char*));
+        for(token = strtok_r(cpy, " ", &ptr); token != NULL; token = strtok_r(NULL, " ", &ptr))
+        {
+                void * uarg = upage + (token - (char *) kpage);
+                if(push(kpage, &ofs, &uarg, sizeof uarg) == NULL)
+                {
+                        return false;
+                }
+                argc++;
+        }
+
+        int i;
+        argv = (char **) (upage + ofs);
+        char ** temp = (char **) (kpage + ofs);
+        for(i = argc - 1; (i > (argc-1)/2); i--) // backwards
+        {
+                char * t = temp[i];
+                temp[i] = temp[(argc - 1) - i];
+                temp[(argc - 1) - i] = t;
+        }
+
+        if( push(kpage, &ofs, &argv, sizeof(argv)) == NULL)
+        {
+                success = false;
+        }
+        if( push(kpage, &ofs, &argc, sizeof(argc)) == NULL)
+        {
+                success = false;
+        }
+        if( push(kpage, &ofs, &null, sizeof(null)) == NULL )
+        {
+                success = false;
+        }
 	//##push() a null (more precisely &null).
 	//##if push return a NULL, return false
 	
