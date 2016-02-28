@@ -200,12 +200,12 @@ process_exit (void)
     {
 	curProcess = cur->wait;
 	printf("%s: exit(%d)\n", cur->name, curProcess->status);
-	sema_up(&curProcess->load_sema);
+	lock_release(&curProcess->wait_lock);
     }
     
     for(e = list_begin(&cur->children); e != list_end(&cur->children); e = list_next(e))
     {
-   	curProcess = list_entry(e, struct childProcess, elem);
+   	curProcess = list_entry(e, struct child_process, elem);
 	f = list_remove(e);
     }
 
