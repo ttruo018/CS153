@@ -157,7 +157,6 @@ process_wait (tid_t child_tid )
 		if(c->pid == child_tid)
 		{
 			sema_down(&c->sema);
-			child = c;
 			break;
 		}
 	}
