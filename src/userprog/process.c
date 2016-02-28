@@ -65,19 +65,12 @@ process_execute (const char *file_name)
 
 	//struct child_status *child_status = malloc(sizeof(struct child_status));
 	
-	//initializing an interrupt frame
-	struct intr_frame if_;
-	memset (&if_, 0, sizeof if_);
-	if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
-	if_.cs = SEL_UCSEG;
-	if_.eflags = FLAG_IF | FLAG_MBS;
-	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
 	if (tid != TID_ERROR) 
 	{
 		sema_down(&exec.load_sema);
-		if (load(file_name, &if_.eip, &if_.esp) ) {
+		if (exec.run_success){
 			list_push_back(&thread_current()->children, &exec.child);
 		}
 		else
