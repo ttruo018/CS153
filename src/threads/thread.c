@@ -255,11 +255,11 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-  struct thread * m = highestPri(); // you want the thread with highest priority to run first 
+  /*struct thread * m = highestPri(); // you want the thread with highest priority to run first 
   if(m->priority > thread_current()->priority)
   {
 	thread_yield();
-  }
+  }*/
 
   return tid;
 }
@@ -412,9 +412,9 @@ thread_set_priority (int new_priority)
   thread_current () ->basePriority = new_priority; // save base priority in order to return it back to normal after sema_up
   thread_current () ->priority  = new_priority;
   struct thread * t = highestPri(); 
-  if(new_priority < t-> priority) { // thread with highest pri needs to run first
+  /*if(new_priority < t-> priority) { // thread with highest pri needs to run first
 	  thread_yield();	    // everything else gets yielded
-  }
+  }*/
 }
 
 /* Returns the current thread's priority. */
