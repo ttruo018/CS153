@@ -488,7 +488,7 @@ static int sys_write(int fd, void * buffer, unsigned size)
 		unsigned bytes_to_write = (bytes_on_page) > size ? size : bytes_on_page;
 		int bytes_written;
 		
-		if(!verify_user(buffer))
+		if(!verify_user(buffer) || !verify_user(buffer+size))
 		{
 			lock_release(&filesys_lock);
 			sys_exit(-1);
