@@ -143,8 +143,8 @@ start_process (void *file_name_)
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
   thread_current()->execute = filesys_open(exec->file_name);
-  file_deny_write(thread_current()->execute);
-  palloc_free_page(file_name_);
+  /*file_deny_write(thread_current()->execute);
+  palloc_free_page(file_name_);*/
   process_change(PROCESS_STARTED);
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
