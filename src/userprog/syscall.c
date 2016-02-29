@@ -117,6 +117,18 @@ static struct file * filesys_get_file(int fd)
 	lock_release(&filesys_lock);
 	return f != NULL ? f->file : NULL;
 }
+
+void filesys_free_files(struct thread * t)
+{
+	struct list_elem * e;
+	for(e = list_begin(&t->openFiles); e != list_end(&t->openFiles);)
+	{
+		struct list_elem * n = list_next(e);	
+		struct fd_elem * fd_element = list_entry(e, struct fd_elem, l_elem);
+		filesys_free_fdelem(fd_element);
+		e = n;
+	}
+}
 static void sys_halt (void);
 void sys_exit (int status);
 static pid_t sys_exec (const char *cmd_line);
@@ -139,7 +151,7 @@ syscall_init (void)
   	intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 	lock_init(&filesys_lock);
 	hash_init(&filesys_fdhash, filesys_fdhash_func, filesys_fdhash_less, NULL);
-	//process_init();
+	process_init();
 }
 
 /* Copies SIZE bytes from user address USRC to kernel address DST.

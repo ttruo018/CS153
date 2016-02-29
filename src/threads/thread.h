@@ -103,6 +103,7 @@ struct thread
     struct list children;
     struct lock childLock;
     struct condition childChange;
+    struct thread * par;
     int parent;
     int niceValue;                     /* Nice value for advanced BSD*/
     int recent_cpu;                    /* Estimation of total clock ticks recently used */
@@ -118,6 +119,8 @@ struct thread
     struct child_process * wait;
     struct list openFiles;
     struct file * execFile;
+    enum process_status pro_status;
+    struct file * execute;
 #endif
 
     /* Owned by thread.c. */

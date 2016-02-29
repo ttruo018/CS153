@@ -23,6 +23,7 @@ struct child_process * add_child_process (int pid);
 struct child_process * get_child_process (int pid);
 void remove_child_process (struct child_process *cp);
 
+void filesys_free_files(struct thread *);
 void syscall_init (void);
 int fd_open(const char *);
 int fd_read(int, void *, unsigned);
