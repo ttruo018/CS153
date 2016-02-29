@@ -216,16 +216,20 @@ syscall_handler (struct intr_frame *f )
   unsigned callNum;
   int args[3];
   int numOfArgs;
-
-  if(!verify_user(f->esp))
-  {
- 	sys_exit(-1);
-  }
+  int i;
   //##Get syscall number
   copy_in (&callNum, f->esp, sizeof callNum);
 
   //##Using the number find out which system call is being used
   numOfArgs = syscall_arg[callNum];
+
+  for(i = 1; i <= numOfArgs; i++)
+  {
+  	if(!verify_user(f->esp + i))
+  	{
+ 		sys_exit(-1);
+ 	}
+  }
 
   copy_in(args, (uint32_t *) f->esp + 1, sizeof *args * numOfArgs);
 
