@@ -77,7 +77,7 @@ process_execute (const char *file_name)
 		strtok_r(thread_name, " ", &saveptr);
 	}
 
-	//struct child_status *child_status = malloc(sizeof(struct child_status));
+	struct child_status *child_status = malloc(sizeof(struct child_status));
 	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
@@ -391,7 +391,7 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
-  file_deny_write(file);
+  //file_deny_write(file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
