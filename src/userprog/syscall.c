@@ -147,7 +147,7 @@ syscall_init (void)
 static void copy_in (void *dst_, const void *usrc_, size_t size)
 {
 	uint8_t *dst = dst_;
-	const uint8_t *usrc = usrc;
+	const uint8_t *usrc = usrc_;
 
 	for (; size > 0; size--, dst++, usrc++)
 	{
