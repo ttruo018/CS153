@@ -139,6 +139,7 @@ syscall_init (void)
   	intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 	lock_init(&filesys_lock);
 	hash_init(&filesys_fdhash, filesys_fdhash_func, filesys_fdhash_less, NULL);
+	//process_init();
 }
 
 /* Copies SIZE bytes from user address USRC to kernel address DST.
@@ -235,7 +236,7 @@ syscall_handler (struct intr_frame *f )
   switch(callNum)
   {
 		case 0 :
-			halt();
+			sys_halt();
 			break;
 		case 1 :
 			sys_exit(args[0]);
@@ -279,7 +280,7 @@ syscall_handler (struct intr_frame *f )
   }
 }
 
-void halt (void)
+static void sys_halt (void)
 {
 	shutdown_power_off();
 }
@@ -450,7 +451,7 @@ static int sys_read(int fd, void * buffer, unsigned size)
 	return totalBytes;
 }
 
-int fd_write(int fd, void * buffer, unsigned size)
+int fd_write(int fd, const void * buffer, unsigned size)
 {
 	struct file * fileOpen = filesys_get_file(fd);
 	if(fileOpen == NULL)// || file_is_dir(fileOpen))
@@ -512,7 +513,7 @@ static int sys_write(int fd, void * buffer, unsigned size)
 	return total_bytes;
 }
 
-static void fd_seek(int fd, unsigned position)
+void fd_seek(int fd, unsigned position)
 {
 	struct file * fileOpen = filesys_get_file(fd);
 	if(fileOpen == NULL)// || file_is_dir(fileOpen))

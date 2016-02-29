@@ -24,6 +24,12 @@ struct child_process * get_child_process (int pid);
 void remove_child_process (struct child_process *cp);
 
 void syscall_init (void);
+int fd_open(const char *);
+int fd_read(int, void *, unsigned);
+int fd_write(int, const void *, unsigned);
+int fd_filesize(int );
+void fd_seek(int, unsigned);
 void sys_exit(int);
+
 
 #endif /* userprog/syscall.h */
