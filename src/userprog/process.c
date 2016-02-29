@@ -192,7 +192,7 @@ process_exit (void)
     struct child_process *curProcess;
     file_close(cur->execFile);
 
-    if(cur->wait != NULL)
+    /*if(cur->wait != NULL)
     {
 	curProcess = cur->wait;
 	printf("%s: exit(%d)\n", cur->name, curProcess->status);
@@ -203,7 +203,7 @@ process_exit (void)
     {
    	curProcess = list_entry(e, struct child_process, elem);
 	f = list_remove(e);
-    }
+    }*/
 
     pd = cur->pagedir;
     if (pd != NULL) 
