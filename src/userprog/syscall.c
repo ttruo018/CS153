@@ -39,13 +39,9 @@ struct fd_elem
 	struct file * file;
 };
 
-static bool verify(const void *uadder)
+static bool verify(const char *buffer)
 {
-	if(uadder == NULL)
-	{
-		return false;
-	}
-	return (uadder < PHYS_BASE && pagedir_get_page(thread_current()->pagedir, uadder) != NULL);
+	return is_user_vaddr(buffer) && pagedir_get_page(thread_current()->pagedir, buffer) != NULL;
 }
 
 static int allocate_fd(void)
@@ -488,7 +484,7 @@ static int sys_write(int fd, void * buffer, unsigned size)
 		unsigned bytes_to_write = (bytes_on_page) > size ? size : bytes_on_page;
 		int bytes_written;
 		
-		if(!verify_user(buffer) || !verify_user(buffer+size))
+		if(!verify(buffer) || !verify_user(buffer+size))
 		{
 			lock_release(&filesys_lock);
 			sys_exit(-1);
