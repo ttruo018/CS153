@@ -221,6 +221,7 @@ syscall_handler (struct intr_frame *f )
   copy_in (&callNum, f->esp, sizeof callNum);
 
   //##Using the number find out which system call is being used
+  printf("callNum: %d\n", callNum);
   numOfArgs = syscall_arg[callNum];
 
   for(i = 1; i <= numOfArgs; i++)
