@@ -653,9 +653,10 @@ setup_stack (void **esp, char *cmdline)
     {
       uint8_t *upage = ( (uint8_t *) PHYS_BASE) - PGSIZE;
       success = install_page (upage, kpage, true);
-      if (success)
-        //*esp = PHYS_BASE;
+      if (success){
+        *esp = PHYS_BASE - 12;
         success = setup_stack_helper(cmdline, kpage, upage, esp);
+      }
       else
         palloc_free_page (kpage);
     }
