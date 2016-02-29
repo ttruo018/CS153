@@ -22,7 +22,7 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static struct lock process_lock;
+//static struct lock process_lock;
 
 struct exec_helper
 {
@@ -36,22 +36,10 @@ struct exec_helper
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
 
-void process_init()
+/*void process_init()
 {
 	lock_init(&process_lock);
-}
-
-static void process_change(enum process_status status)
-{
-	thread_current()->wait->status = status;
-	struct thread * parent = thread_current()->par;
-	if(!parent)
-	{
-		lock_acquire(&parent->childLock);
-		cond_signal(&parent->childChange, &parent->childLock);
-		lock_release(&parent->childLock);
-	}
-}
+}*/
 
 tid_t
 process_execute (const char *file_name) 
@@ -77,7 +65,7 @@ process_execute (const char *file_name)
 		strtok_r(thread_name, " ", &saveptr);
 	}
 
-	struct child_status *child_status = malloc(sizeof(struct child_status));
+	//struct child_status *child_status = malloc(sizeof(struct child_status));
 	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
@@ -132,8 +120,6 @@ start_process (void *file_name_)
   sema_up(&exec->load_sema);
   if (!success) 
   {
-	process_change(PROCESS_FAILED);
-	filesys_free_files(thread_current());
     	thread_exit ();
   }
   /* Start the user process by simulating a return from an
@@ -142,10 +128,6 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-  thread_current()->execute = filesys_open(exec->file_name);
-  /*file_deny_write(thread_current()->execute);
-  palloc_free_page(file_name_);*/
-  process_change(PROCESS_STARTED);
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
 }
@@ -205,7 +187,7 @@ process_exit (void)
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
-    /*struct list_elem *e;
+    struct list_elem *e;
     struct list_elem *f;
     struct child_process *curProcess;
     file_close(cur->execFile);
@@ -221,7 +203,7 @@ process_exit (void)
     {
    	curProcess = list_entry(e, struct child_process, elem);
 	f = list_remove(e);
-    }*/
+    }
 
     pd = cur->pagedir;
     if (pd != NULL) 
@@ -239,37 +221,6 @@ process_exit (void)
     }
 }
 
-void process_release(int status)
-{
-	lock_acquire(&process_lock);
-	printf("%s: exit(%d)\n", thread_current()->name, status);
-	
-	if(thread_current()->wait->stat == PROCESS_ORPHANED)
-	{
-		free(thread_current()->wait);
-	}
-	else if(thread_current()->parent != NULL)
-	{
-		thread_current()->wait->status = status;
-		process_change(PROCESS_DONE);
-	}
-
-	struct list_elem * e;
-	for(e = list_begin(&thread_current()->children); e != list_end(&thread_current()->children);)
-	{		
-		struct child_process * c = list_entry(e, struct child_process, elem);
-		e = list_next(e);
-
-		if(c->stat == PROCESS_DONE)
-			free(c);
-		else
-			c->stat = PROCESS_ORPHANED;	
-	}
-	filesys_free_files(thread_current());
-	file_allow_write(thread_current()->execute);	
-	file_close(thread_current()->execute);
-	lock_release(&process_lock);
-}
 /* Sets up the CPU for running user code in the current
    thread.
    This function is called on every context switch. */
@@ -391,7 +342,7 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
-  //file_deny_write(file);
+  file_deny_write(file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
