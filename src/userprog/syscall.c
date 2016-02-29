@@ -130,7 +130,7 @@ static bool sys_remove (const char *file);
 static int sys_open (const char *file);
 static int sys_filesize (int fd);
 static int sys_read (int fd, void *buffer, unsigned size);
-int sys_write (int fd, const void *buffer, unsigned size);
+static int sys_write (int fd, const void *buffer, unsigned size);
 static void sys_seek (int fd, unsigned position);
 static unsigned sys_tell (int fd);
 static void sys_close (int fd);
@@ -478,10 +478,10 @@ static int console_write(const char * buffer, unsigned size) // chunks of 128 by
 	return size;
 }
 
-int sys_write(int fd, const void * buffer, unsigned size)
+static int sys_write(int fd, const void * buffer, unsigned size)
 {
 	int total_bytes = 0;
-	lock_acquire(&filesys_lock);
+	//lock_acquire(&filesys_lock);
 	while(size > 0)
 	{
 		unsigned bytes_on_page = PGSIZE - pg_ofs(buffer);
@@ -512,7 +512,7 @@ int sys_write(int fd, const void * buffer, unsigned size)
 			return total_bytes;
 		}	
 	}
-	lock_release(&filesys_lock);
+	//lock_release(&filesys_lock);
 	return total_bytes;
 }
 
