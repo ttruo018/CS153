@@ -130,7 +130,7 @@ static bool sys_remove (const char *file);
 static int sys_open (const char *file);
 static int sys_filesize (int fd);
 static int sys_read (int fd, void *buffer, unsigned size);
-static int sys_write (int fd, const void *buffer, unsigned size);
+int sys_write (int fd, const void *buffer, unsigned size);
 static void sys_seek (int fd, unsigned position);
 static unsigned sys_tell (int fd);
 static void sys_close (int fd);
@@ -478,7 +478,7 @@ static int console_write(const char * buffer, unsigned size) // chunks of 128 by
 	return size;
 }
 
-static int sys_write(int fd, const void * buffer, unsigned size)
+int sys_write(int fd, const void * buffer, unsigned size)
 {
 	int total_bytes = 0;
 	lock_acquire(&filesys_lock);
@@ -585,5 +585,5 @@ struct child_process * get_child_process ( int pid)
 void remove_child_process (struct child_process *cp)
 {
 	list_remove(&cp->elem);
-	//free(cp);
+	free(cp);
 }
