@@ -187,7 +187,6 @@ process_exit (void)
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
-    lock_acquire(&process_lock);
     struct list_elem *e;
     struct list_elem *f;
     struct child_process *curProcess;
@@ -205,8 +204,6 @@ process_exit (void)
    	curProcess = list_entry(e, struct child_process, elem);
 	f = list_remove(e);
     }
-
-    lock_release(&process_lock);
 
     pd = cur->pagedir;
     if (pd != NULL) 
