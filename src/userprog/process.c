@@ -22,7 +22,7 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-//static struct lock process_lock;
+static struct lock process_lock;
 
 struct exec_helper
 {
@@ -36,10 +36,10 @@ struct exec_helper
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
 
-/*void process_init()
+void process_init()
 {
 	lock_init(&process_lock);
-}*/
+}
 
 tid_t
 process_execute (const char *file_name) 
@@ -187,6 +187,7 @@ process_exit (void)
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
+    lock_acquire(&process_lock);
     struct list_elem *e;
     struct list_elem *f;
     struct child_process *curProcess;
@@ -204,6 +205,8 @@ process_exit (void)
    	curProcess = list_entry(e, struct child_process, elem);
 	f = list_remove(e);
     }
+
+    lock_release(&process_lock);
 
     pd = cur->pagedir;
     if (pd != NULL) 
