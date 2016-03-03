@@ -303,7 +303,6 @@ void sys_exit (int status)
 		cur->status = status;
 	}
 	//printf ("%s: exit(%d)\n", cur->name, status);
-	file_allow_write(thread_current()->execute);
 	file_close(thread_current()->execute);
 	thread_exit();
 	NOT_REACHED();
