@@ -360,9 +360,9 @@ static bool sys_remove(const char *path)
 int fd_open(const char * file)
 {
 	struct file * fileOpen = filesys_open(file);
-	if(!fileOpen)
+	if(fileOpen == NULL)
 	{
-		sys_exit(-1);
+		return -1;
 	}
 	
 	struct fd_elem * hash = malloc(sizeof(struct fd_elem));
@@ -386,7 +386,7 @@ int fd_open(const char * file)
 
 static int sys_open(const char *file)
 {
-	if(!verify(file))
+	if(file == NULL || !verify(file))
 	{
 		sys_exit(-1);
 	}
