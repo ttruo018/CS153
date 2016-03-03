@@ -360,7 +360,7 @@ int fd_open(const char * file)
 	if(hash == NULL)
 	{
 		file_close(file);
-		//return -1;
+		return -1;
 	}
 	
 	hash->fd = allocate_fd();
@@ -423,6 +423,10 @@ static int sys_read(int fd, void * buffer, unsigned size)
 	{
 		sys_exit(-1);
 	}
+	if(fd != STDIN_FILENO)
+	{
+		
+	}
 	while(size > 0)
 	{
 		unsigned bytes_on_page = PGSIZE - pg_ofs (buffer);
@@ -435,7 +439,6 @@ static int sys_read(int fd, void * buffer, unsigned size)
 		if(fd == STDIN_FILENO)
 		{
 			bytes_read = conRead(buffer, size);
-			printf("Bytes_read :=%d\n", bytes_read);
 		}
 		else
 		{
