@@ -7,6 +7,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 #include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *);
@@ -352,7 +353,7 @@ static bool sys_remove(const char *path)
 	
 	bool success = false;
 	struct file * file = filesys_open(path);
-	if(file)
+	if(file != NULL)
 	{
 		file_close(file);
 		success = filesys_remove(path);
