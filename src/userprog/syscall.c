@@ -51,6 +51,15 @@ static int allocate_fd(void)
 	return fd_curr++;
 }
 
+static const void * virtualAddress(const void * vaddr)
+{
+	if(!is_user_vaddr(vaddr))
+	{
+		return NULL;
+	}
+	return pagedir_get_page(thread_current()->pagedir, vaddr);
+}
+
 static unsigned filesys_fdhash_func (const struct hash_elem *e, void *aux)
 {
 	struct fd_elem *elem = hash_entry(e, struct fd_elem, h_elem);
@@ -366,9 +375,42 @@ int fd_open(const char * file)
 	return hash->fd;
 }
 
+
 static int sys_open(const char *file)
 {
-	if(file == NULL || !verify(file))
+	if(file == NULL) //|| !verify(file))
+	{
+		sys_exit(-1);
+	}
+	int size, i;
+	bool check = false;
+	for(i = 0; i <= 256; i++)
+	{
+		const char * c = virtualAddress(file++);
+		if(c == NULL)
+		{
+			size = -1;
+			check = true;
+			break;
+		}
+		if(*c == '\0')
+		{
+			size = i;
+			check = true;
+			break;
+		}
+	}
+	if(!check)
+	{
+		size = 256 + 1;
+	}
+
+	if(size == -1)
+	{
+		sys_exit(-1);
+	}
+
+	if(size > 256)
 	{
 		return -1;
 	}
