@@ -397,11 +397,8 @@ static int sys_filesize(int fd)
 
 int fd_read(int fd, void *buffer, unsigned size)
 {
-	struct file * fileOpen;
-	lock_acquire(&filesys_lock);
-	struct fd_elem * fileFound = filesys_get_fd_elem(fd);
-	lock_release(&filesys_lock);
-	if(fileFound == NULL) 
+	struct file * fileOpen = filesys_get_file(fd);
+	if(fileOpen == NULL || !verify_user(fileOpen)) 
 	{
 		return -1;
 	}
@@ -455,7 +452,7 @@ static int sys_read(int fd, void * buffer, unsigned size)
 int fd_write(int fd, const void * buffer, unsigned size)
 {
 	struct file * fileOpen = filesys_get_file(fd);
-	if(fileOpen == NULL)// || file_is_dir(fileOpen))
+	if(fileOpen == NULL || !verify_user(fileOpen))// || file_is_dir(fileOpen))
 	{
 		return -1;
 	}
