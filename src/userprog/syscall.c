@@ -217,6 +217,11 @@ syscall_handler (struct intr_frame *f )
   int numOfArgs;
   int i;
   //##Get syscall number
+  if(!verify_user(f->esp))
+  {
+ 	sys_exit(-1);
+  }
+
   copy_in (&callNum, f->esp, sizeof callNum);
 
   //##Using the number find out which system call is being used
@@ -289,10 +294,10 @@ static void sys_halt (void)
 
 void sys_exit (int status)
 {
-	lock_acquire(&process_lock);
+	//lock_acquire(&process_lock);
 	struct thread *cur = thread_current();
 	printf ("%s: exit(%d)\n", cur->name, status);
-	if(thread_current()->parent != NULL)//if(thread_alive(cur->parent))
+	if(thread_alive(cur->parent))
 	{
 		struct list_elem *e;
 		for(e = list_begin( &cur-> children); e != list_end(&cur->children); e = list_next(e))
@@ -301,9 +306,9 @@ void sys_exit (int status)
 			thread_current()->wait->status = status;
 		}
 	}
-	file_allow_write(&thread_current()->execFile);
+	/*file_allow_write(&thread_current()->execFile);
 	file_close(thread_current()->execFile);
-	lock_release(&process_lock);
+	lock_release(&process_lock);*/
 	thread_exit();
 	NOT_REACHED();
 }
