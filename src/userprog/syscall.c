@@ -297,8 +297,9 @@ void sys_exit (int status)
 			cp->status = status;
 		}
 	}
-	printf ("%s: exit(%d)\n", cur->name, status);
+	//printf ("%s: exit(%d)\n", cur->name, status);
 	thread_exit();
+	NOT_REACHED();
 }
 
 static pid_t sys_exec(const char * cmd_line)
