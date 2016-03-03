@@ -402,7 +402,7 @@ static int sys_open(const char *file)
 	}
 	if(!check)
 	{
-		return -1;
+		sys_exit(-1);
 	}
 	if(size == -1)
 	{
