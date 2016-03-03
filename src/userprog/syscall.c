@@ -295,15 +295,10 @@ void sys_exit (int status)
 		for(e = list_begin( &cur-> children); e != list_end(&cur->children); e = list_next(e))
 		{
 			struct child_process *cp = list_entry(e, struct child_process, elem);
-			cp->status = status;
+			cur->wait->status = status;
 		}
 	}
-	else
-	{
-		cur->status = status;
-	}
 	//printf ("%s: exit(%d)\n", cur->name, status);
-	file_close(thread_current()->execute);
 	thread_exit();
 	NOT_REACHED();
 }
