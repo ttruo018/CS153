@@ -291,6 +291,7 @@ void sys_exit (int status)
 {
 	lock_acquire(&process_lock);
 	struct thread *cur = thread_current();
+	printf ("%s: exit(%d)\n", cur->name, status);
 	if(thread_alive(cur->parent))
 	{
 		struct list_elem *e;
@@ -303,7 +304,6 @@ void sys_exit (int status)
 	file_allow_write(&thread_current()->execFile);
 	file_close(thread_current()->execFile);
 	lock_release(&process_lock);
-	//printf ("%s: exit(%d)\n", cur->name, status);
 	thread_exit();
 	NOT_REACHED();
 }
