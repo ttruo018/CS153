@@ -419,16 +419,21 @@ static int conRead(char * buffer, unsigned size)
 static int sys_read(int fd, void * buffer, unsigned size)
 {
 	int totalBytes = 0;
+	if(!verify_user(buffer) || !verify_user(buffer+size))
+	{
+		sys_exit(-1);
+	}
 	while(size > 0)
 	{
 		unsigned bytes_on_page = PGSIZE - pg_ofs (buffer);
 		unsigned bytes_to_read = (bytes_on_page) > size ? size : bytes_on_page;
 		int bytes_read = 0;
-		
-		if(!verify_user(buffer) || !verify_user(buffer+size))
+	
+		if(!verify_user(buffer))
 		{
-			sys_exit(-1);
+			thread_exit();	
 		}
+
 		if(fd == STDIN_FILENO)
 		{
 			bytes_read = conRead(buffer, size);
