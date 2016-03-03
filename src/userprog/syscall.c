@@ -371,7 +371,7 @@ int fd_open(const char * file)
 	struct fd_elem * hash = malloc(sizeof(struct fd_elem));
 	if(hash == NULL)
 	{
-		file_close(file);
+		file_close(fileOpen);
 		return -1;
 	}
 	
@@ -390,7 +390,7 @@ int fd_open(const char * file)
 
 static int sys_open(const char *file)
 {
-	if(file == NULL || !verify_user(file))
+	if(file == NULL) 
 	{
 		sys_exit(-1);
 	}
@@ -415,7 +415,7 @@ static int sys_filesize(int fd)
 int fd_read(int fd, void *buffer, unsigned size)
 {
 	struct file * fileOpen = filesys_get_file(fd);
-	if(fileOpen == NULL || !verify_user(fileOpen)) 
+	if(fileOpen == NULL) 
 	{
 		return -1;
 	}
@@ -439,10 +439,6 @@ static int sys_read(int fd, void * buffer, unsigned size)
 	if(!verify_user(buffer) || !verify_user(buffer+size))
 	{
 		sys_exit(-1);
-	}
-	if(fd != STDIN_FILENO)
-	{
-		
 	}
 	while(size > 0)
 	{
@@ -476,7 +472,7 @@ static int sys_read(int fd, void * buffer, unsigned size)
 int fd_write(int fd, const void * buffer, unsigned size)
 {
 	struct file * fileOpen = filesys_get_file(fd);
-	if(fileOpen == NULL || !verify_user(fileOpen))// || file_is_dir(fileOpen))
+	if(fileOpen == NULL) 
 	{
 		return -1;
 	}
