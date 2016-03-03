@@ -360,7 +360,7 @@ int fd_open(const char * file)
 	if(hash == NULL)
 	{
 		file_close(file);
-		return -1;
+		//return -1;
 	}
 	
 	hash->fd = allocate_fd();
@@ -382,47 +382,16 @@ static int sys_open(const char *file)
 	{
 		sys_exit(-1);
 	}
-	/*int size, i;
-	bool check = false;
-	for(i = 0; i <= 256; i++)
-	{
-		const char * c = virtualAddress(file++);
-		if(c == NULL)
-		{
-			size = -1;
-			check = true;
-			break;
-		}
-		if(*c == '\0')
-		{
-			size = i;
-			check = true;
-			break;
-		}
-	}
-	if(!check)
-	{
-		sys_exit(-1);
-	}
-	if(size == -1)
-	{
-		sys_exit(-1);
-	}*/
-
 	return fd_open(file);
 }
 
 static int sys_filesize(int fd)
 {
-	struct file * fileOpen;
-	lock_acquire(&filesys_lock);
-	struct fd_elem * fileFound = filesys_get_fd_elem(fd);
-	lock_release(&filesys_lock);
-	if(fileFound == NULL)
+	struct file * fileOpen = filesys_get_file(fd);
+	if(fileOpen == NULL)
 	{
-		sys_exit(-1);
+		return -1;
 	}
-	fileOpen = fileFound->file;
 	return file_length(fileOpen);
 }
 
