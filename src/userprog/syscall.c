@@ -344,7 +344,7 @@ int fd_open(const char * file)
 	struct file * fileOpen = filesys_open(file);
 	if(fileOpen == NULL)
 	{
-		sys_exit(-1);
+		return -1;
 	}
 	
 	struct fd_elem * hash = malloc(sizeof(struct fd_elem));
