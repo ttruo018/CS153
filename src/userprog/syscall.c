@@ -388,7 +388,7 @@ static int sys_open(const char *file)
 {
 	if(!verify(file))
 	{
-		return -1;
+		sys_exit(-1);
 	}
 	return fd_open(file);
 }
@@ -401,7 +401,7 @@ static int sys_filesize(int fd)
 	lock_release(&filesys_lock);
 	if(fileFound == NULL)
 	{
-		return -1;
+		sys_exit(-1);
 	}
 	fileOpen = fileFound->file;
 	return file_length(fileOpen);
