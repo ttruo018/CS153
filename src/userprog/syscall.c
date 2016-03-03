@@ -390,7 +390,7 @@ int fd_open(const char * file)
 
 static int sys_open(const char *file)
 {
-	if(file == NULL) // || !verify_user(file))
+	if(file == NULL || !verify_user(file))
 	{
 		sys_exit(-1);
 	}
