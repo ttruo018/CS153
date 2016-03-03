@@ -435,6 +435,7 @@ static int sys_read(int fd, void * buffer, unsigned size)
 		if(fd == STDIN_FILENO)
 		{
 			bytes_read = conRead(buffer, size);
+			printf("Bytes_read :=%d\n", bytes_read);
 		}
 		else
 		{
