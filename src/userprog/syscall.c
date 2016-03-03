@@ -12,6 +12,7 @@
 static void syscall_handler (struct intr_frame *);
 static struct hash filesys_fdhash;
 static struct lock filesys_lock;
+static struct lock process_lock;
 static inline bool get_user (uint8_t *dst, const uint8_t *usrc);
 static uint8_t syscall_arg[] = 
 {
