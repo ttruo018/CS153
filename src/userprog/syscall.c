@@ -81,8 +81,7 @@ static struct fd_elem * filesys_get_fd_elem(int fd)
 	struct fd_elem s;
 	s.fd = fd;
 	
-	struct hash_elem *f;
-	f = hash_find (&filesys_fdhash, &s.h_elem);
+	struct hash_elem *f = hash_find (&filesys_fdhash, &s.h_elem);
 	
 	if(f == NULL)
 	{
@@ -395,11 +394,11 @@ static int sys_open(const char *file)
 	{
 		sys_exit(-1);
 	}
-	char * stringCheck = copy_in_string(file);
-	if(stringCheck == NULL)\
+	/*char * stringCheck = copy_in_string(file);
+	if(stringCheck == NULL)
 	{
 		sys_exit(-1);
-	}
+	}*/
 	return fd_open(file);
 }
 
