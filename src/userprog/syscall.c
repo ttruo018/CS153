@@ -550,7 +550,7 @@ static unsigned sys_tell (int fd)
 static void sys_close(int fd)
 {
 	struct fd_elem * elem = filesys_get_fdelem(fd);
-	if(!elem)
+	if(elem != NULL)
 	{
 		filesys_free_fdelem(elem);
 	}
