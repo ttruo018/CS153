@@ -382,7 +382,7 @@ static int sys_open(const char *file)
 	{
 		sys_exit(-1);
 	}
-	int size, i;
+	/*int size, i;
 	bool check = false;
 	for(i = 0; i <= 256; i++)
 	{
@@ -407,7 +407,7 @@ static int sys_open(const char *file)
 	if(size == -1)
 	{
 		sys_exit(-1);
-	}
+	}*/
 
 	return fd_open(file);
 }
