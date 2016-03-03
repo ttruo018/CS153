@@ -400,14 +400,13 @@ static int sys_open(const char *file)
 			break;
 		}
 	}
-	if(!check)
-	{
-		size = 256 + 1;
-	}
-
 	if(size == -1)
 	{
 		sys_exit(-1);
+	}
+	if(!check)
+	{
+		size = 256 + 1;
 	}
 
 	if(size > 256)
