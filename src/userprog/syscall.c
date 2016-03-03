@@ -287,6 +287,7 @@ static void sys_halt (void)
 
 void sys_exit (int status)
 {
+	lock_acquire(&process_lock);
 	struct thread *cur = thread_current();
 	if(thread_alive(cur->parent))
 	{
@@ -297,6 +298,7 @@ void sys_exit (int status)
 			cp->status = status;
 		}
 	}
+	lock_release(&process_lock);
 	//printf ("%s: exit(%d)\n", cur->name, status);
 	thread_exit();
 	NOT_REACHED();
