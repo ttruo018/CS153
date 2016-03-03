@@ -333,7 +333,7 @@ static int sys_wait(pid_t pid)
 
 static bool sys_create (const char *file, unsigned initial_size)
 {
-	if(file != NULL || !verify(file))
+	if(file == NULL || !verify(file))
 	{
 		return false;
 	}
