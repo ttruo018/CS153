@@ -300,6 +300,8 @@ void sys_exit (int status)
 			thread_current()->wait->status = status;
 		}
 	}
+	file_allow_write(&thread_current()->execFile);
+	file_close(thread_current()->execFile);
 	lock_release(&process_lock);
 	//printf ("%s: exit(%d)\n", cur->name, status);
 	thread_exit();

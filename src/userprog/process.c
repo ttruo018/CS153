@@ -190,7 +190,7 @@ process_exit (void)
     struct list_elem *e;
     struct list_elem *f;
     struct child_process *curProcess;
-    file_close(cur->execFile);
+    //file_close(cur->execFile);
 
     if(cur->wait != NULL)
     {
