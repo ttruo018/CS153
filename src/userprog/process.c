@@ -207,7 +207,6 @@ process_exit (void)
     }
 
     free_open_files(thread_current());
-    file_allow_write(thread_current()->execFile);
 
     pd = cur->pagedir;
     if (pd != NULL) 
