@@ -380,9 +380,9 @@ int fd_open(const char * file)
 	hash->file = fileOpen;	
 	hash->owner_pid = thread_current()->tid;
 	
-	//lock_acquire(&filesys_lock);
+	lock_acquire(&filesys_lock);
 	hash_insert(&filesys_fdhash, &hash->l_elem);
-	//lock_release(&filesys_lock);
+	lock_release(&filesys_lock);
 	
 	list_push_back(&thread_current()->openFiles, &hash->l_elem);
 	return hash->fd;
@@ -391,7 +391,7 @@ int fd_open(const char * file)
 
 static int sys_open(const char *file)
 {
-	if(file == NULL || !verify_user(file))
+	if(file == NULL) // || !verify_user(file))
 	{
 		sys_exit(-1);
 	}
