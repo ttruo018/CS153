@@ -83,7 +83,7 @@ static struct fd_elem * filesys_get_fd_elem(int fd)
 }
 
 
-static void filesys_free_fdelem(struct fd_elem * elem)
+static void filesys_free_fd_elem(struct fd_elem * elem)
 {
 	file_close(elem->file);
 	lock_acquire(&filesys_lock);
@@ -93,28 +93,10 @@ static void filesys_free_fdelem(struct fd_elem * elem)
 	free(elem);
 }
 
-static struct fd_elem * filesys_get_fdelem(int fd)
-{
-	struct fd_elem s;
-	s.fd = fd;
-	
-	struct hash_elem * f;
-	f = hash_find(&filesys_fdhash, &s.h_elem);
-	
-	if(!f)
-	{
-		return NULL;
-	}
-	
-	struct fd_elem * fd_element = hash_entry(f, struct fd_elem, h_elem);
-	
-	return (thread_current()->tid == fd_element->owner_pid ? fd_element : NULL);
-}
-
 static struct file * filesys_get_file(int fd)
 {
 	lock_acquire(&filesys_lock);
-	struct fd_elem * f = filesys_get_fdelem(fd);
+	struct fd_elem * f = filesys_get_fd_elem(fd);
 	lock_release(&filesys_lock);
 	return f != NULL ? f->file : NULL;
 }
@@ -549,10 +531,10 @@ static unsigned sys_tell (int fd)
 
 static void sys_close(int fd)
 {
-	struct fd_elem * elem = filesys_get_fdelem(fd);
+	struct fd_elem * elem = filesys_get_fd_elem(fd);
 	if(elem != NULL)
 	{
-		filesys_free_fdelem(elem);
+		filesys_free_fd_elem(elem);
 	}
 }
 
