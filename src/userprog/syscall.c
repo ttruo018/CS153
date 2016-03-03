@@ -292,7 +292,7 @@ void sys_exit (int status)
 	lock_acquire(&process_lock);
 	struct thread *cur = thread_current();
 	printf ("%s: exit(%d)\n", cur->name, status);
-	if(thread_alive(cur->parent))
+	if(thread_current()->parent != NULL)//if(thread_alive(cur->parent))
 	{
 		struct list_elem *e;
 		for(e = list_begin( &cur-> children); e != list_end(&cur->children); e = list_next(e))
