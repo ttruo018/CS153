@@ -128,6 +128,7 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
+  free_open_files(thread_current());
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
 }
@@ -204,6 +205,9 @@ process_exit (void)
    	curProcess = list_entry(e, struct child_process, elem);
 	f = list_remove(e);
     }
+
+    free_open_files(thread_current());
+    file_allow_write(thread_current()->execFile);
 
     pd = cur->pagedir;
     if (pd != NULL) 

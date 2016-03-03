@@ -74,6 +74,7 @@ static bool filesys_fdhash_less(const struct hash_elem *a, const struct hash_ele
 	return (a_fd->fd < b_fd->fd);
 }
 
+
 static struct fd_elem * filesys_get_fd_elem(int fd)
 {
 	struct fd_elem s;
@@ -102,6 +103,17 @@ static void filesys_free_fd_elem(struct fd_elem * elem)
 	free(elem);
 }
 
+void free_open_files(struct thread * t)
+{
+	struct list_elem * e;
+	for(e = list_begin(&t->openFiles); e != list_end(&t->openFiles);)
+	{
+		struct list_elem * nextElement = list_next(e);
+		struct fd_elem * fd_elem = list_entry(e, struct fd_elem, l_elem);
+		filesys_free_fd_elem(fd_elem);
+		e = nextElement;
+	}
+}
 static struct file * filesys_get_file(int fd)
 {
 	lock_acquire(&filesys_lock);
