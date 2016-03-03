@@ -428,12 +428,10 @@ static int sys_read(int fd, void * buffer, unsigned size)
 		unsigned bytes_on_page = PGSIZE - pg_ofs (buffer);
 		unsigned bytes_to_read = (bytes_on_page) > size ? size : bytes_on_page;
 		int bytes_read = 0;
-	
 		if(!verify_user(buffer))
 		{
 			thread_exit();	
 		}
-
 		if(fd == STDIN_FILENO)
 		{
 			bytes_read = conRead(buffer, size);
@@ -442,14 +440,14 @@ static int sys_read(int fd, void * buffer, unsigned size)
 		{
 			bytes_read = fd_read(fd, buffer, size);
 		}
-		totalBytes += bytes_read;
-		size -= bytes_read;
-		buffer += bytes_read;
 		
+		totalBytes += bytes_read;
 		if(bytes_read != (int)bytes_to_read)
 		{
 			return totalBytes;
 		}
+		size -= bytes_read;
+		buffer += bytes_read;
 	}
 	return totalBytes;
 }
