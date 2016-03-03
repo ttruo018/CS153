@@ -54,7 +54,7 @@ static int allocate_fd(void)
 static unsigned filesys_fdhash_func (const struct hash_elem *e, void *aux)
 {
 	struct fd_elem *elem = hash_entry(e, struct fd_elem, h_elem);
-	return (unsigned) &elem->fd;
+	return (unsigned)elem->fd;
 }
 
 static bool filesys_fdhash_less(const struct hash_elem *a, const struct hash_elem *b, void * aux)
@@ -62,7 +62,7 @@ static bool filesys_fdhash_less(const struct hash_elem *a, const struct hash_ele
 	struct fd_elem *a_fd = hash_entry(a, struct fd_elem, h_elem);
 	struct fd_elem *b_fd = hash_entry(b, struct fd_elem, h_elem);
 	
-	return (&a_fd->fd < &b_fd->fd);
+	return (a_fd->fd < b_fd->fd);
 }
 
 static struct fd_elem * filesys_get_fd_elem(int fd)
