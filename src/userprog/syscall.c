@@ -363,11 +363,9 @@ static bool sys_remove(const char *path)
 
 int fd_open(const char * file)
 {
-	lock_acquire(&filesys_lock);
 	struct file * fileOpen = filesys_open(file);
 	if(fileOpen == NULL)
 	{
-		lock_release(&filesys_lock);
 		return -1;
 	}
 	
@@ -375,7 +373,6 @@ int fd_open(const char * file)
 	if(hash == NULL)
 	{
 		file_close(file);
-		lock_release(&filesys_lock);
 		return -1;
 	}
 	
@@ -383,12 +380,11 @@ int fd_open(const char * file)
 	hash->file = fileOpen;	
 	hash->owner_pid = thread_current()->tid;
 	
-	lock_acquire(&filesys_lock);
+	//lock_acquire(&filesys_lock);
 	hash_insert(&filesys_fdhash, &hash->l_elem);
-	lock_release(&filesys_lock);
+	//lock_release(&filesys_lock);
 	
 	list_push_back(&thread_current()->openFiles, &hash->l_elem);
-	lock_release(&filesys_lock);
 	return hash->fd;
 }
 
