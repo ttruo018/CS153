@@ -140,6 +140,7 @@ syscall_init (void)
   	intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 	lock_init(&filesys_lock);
 	hash_init(&filesys_fdhash, filesys_fdhash_func, filesys_fdhash_less, NULL);
+	lock_init(&process_lock);
 	//process_init();
 }
 
@@ -288,6 +289,7 @@ static void sys_halt (void)
 
 void sys_exit (int status)
 {
+	lock_acquire(&process_lock);
 	struct thread *cur = thread_current();
 	if(thread_alive(cur->parent))
 	{
@@ -295,9 +297,10 @@ void sys_exit (int status)
 		for(e = list_begin( &cur-> children); e != list_end(&cur->children); e = list_next(e))
 		{
 			struct child_process *cp = list_entry(e, struct child_process, elem);
-			cur->wait->status = status;
+			thread_current()->wait->status = status;
 		}
 	}
+	lock_release(&process_lock);
 	//printf ("%s: exit(%d)\n", cur->name, status);
 	thread_exit();
 	NOT_REACHED();
