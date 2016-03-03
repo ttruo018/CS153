@@ -370,7 +370,7 @@ static int sys_open(const char *file)
 {
 	if(file == NULL || !verify(file))
 	{
-		sys_exit(-1);
+		return -1;
 	}
 	return fd_open(file);
 }
