@@ -226,6 +226,10 @@ syscall_handler (struct intr_frame *f )
   int args[3];
   int numOfArgs;
   int i;
+  if(!verify_user(f->esp))
+  {
+	sys_exit(-1);	
+  }
   //##Get syscall number
   copy_in (&callNum, f->esp, sizeof callNum);
 
