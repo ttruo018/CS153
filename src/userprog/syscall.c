@@ -11,7 +11,7 @@
 #include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *);
-static struct hash filesys_fdhash;
+static struct hash fd_hash;
 static struct lock filesys_lock;
 static struct lock process_lock;
 static inline bool get_user (uint8_t *dst, const uint8_t *usrc);
@@ -73,7 +73,7 @@ static struct open_file * fd_to_open_file(int fd)
 	struct open_file s;
 	s.fd = fd;
 	struct thread *t = thread_current();
-	struct hash_elem *f = hash_find (&filesys_fdhash, &s.h_elem);
+	struct hash_elem *f = hash_find (&fd_hash, &s.h_elem);
 	if(f == NULL)
 	{
 		return NULL;
@@ -91,7 +91,7 @@ static void filesys_free_open_file(struct open_file * opened_file)
 {
 	file_close(opened_file->file);
 	lock_acquire(&filesys_lock);
-	hash_delete(&filesys_fdhash, &opened_file->h_elem);
+	hash_delete(&fd_hash, &opened_file->h_elem);
 	lock_release(&filesys_lock);
 	list_remove(&opened_file->l_elem);
 	free(opened_file);
@@ -140,7 +140,7 @@ syscall_init (void)
 {
   	intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 	lock_init(&filesys_lock);
-	hash_init(&filesys_fdhash, filesys_fdhash_func, filesys_fdhash_less, NULL);
+	hash_init(&fd_hash, filesys_fdhash_func, filesys_fdhash_less, NULL);
 	lock_init(&process_lock);
 }
 
@@ -346,10 +346,10 @@ static bool sys_remove(const char *path)
 	}
 	
 	bool success = false;
-	struct file * file = filesys_open(path);
+	struct file * closing_file = filesys_open(path);
 	if(file != NULL)
 	{
-		file_close(file);
+		file_close(closing_file);
 		success = filesys_remove(path);
 	}
 	return success;
@@ -357,13 +357,13 @@ static bool sys_remove(const char *path)
 
 int fd_open(const char * file)
 {
-	struct file * fileOpen = filesys_open(file);
-	struct thread * t = thread_current();
+	struct file *fileOpen = filesys_open(file);
+	struct thread *t = thread_current();
 	if(fileOpen == NULL)
 	{
 		return -1;
 	}
-	struct open_file * hash = malloc(sizeof(struct open_file));
+	struct open_file *hash = malloc(sizeof(struct open_file));
 	if(hash == NULL)
 	{
 		file_close(fileOpen);
@@ -375,9 +375,8 @@ int fd_open(const char * file)
 	hash->pid = t->tid;
 	
 	lock_acquire(&filesys_lock);
-	hash_insert(&filesys_fdhash, &hash->h_elem);
+	hash_insert(&fd_hash, &hash->h_elem);
 	lock_release(&filesys_lock);
-	
 	list_push_back(&t->openFiles, &hash->l_elem);
 	return new_fd;
 }
@@ -394,7 +393,7 @@ static int sys_open(const char *file)
 
 static int sys_filesize(int fd)
 {
-	struct file * fileOpen = fd_to_file(fd);
+	struct file *fileOpen = fd_to_file(fd);
 	if(fileOpen == NULL)
 	{
 		return -1;
@@ -404,7 +403,7 @@ static int sys_filesize(int fd)
 
 int fd_read(int fd, void *buffer, unsigned size)
 {
-	struct file * fileOpen = fd_to_file(fd);
+	struct file *fileOpen = fd_to_file(fd);
 	if(fileOpen == NULL) 
 	{
 		return -1;
@@ -464,7 +463,7 @@ static int sys_read(int fd, void * buffer, unsigned size)
 
 int fd_write(int fd, const void * buffer, unsigned size)
 {
-	struct file * fileOpen = fd_to_file(fd);
+	struct file *fileOpen = fd_to_file(fd);
 	if(fileOpen == NULL) 
 	{
 		return -1;
@@ -488,7 +487,6 @@ static int console_write(char * buffer, unsigned size) // chunks of 128 bytes ea
 static int sys_write(int fd, void * buffer, unsigned size)
 {
 	int total_bytes = 0;
-	//lock_acquire(&filesys_lock);
 	while(size > 0)
 	{
 		unsigned bytes_on_page = PGSIZE - pg_ofs(buffer);
@@ -501,7 +499,6 @@ static int sys_write(int fd, void * buffer, unsigned size)
 		
 		if(!verify(buffer) || !verify_user(buffer+size))
 		{
-			//lock_release(&filesys_lock);
 			sys_exit(-1);
 		}
 		
@@ -523,13 +520,12 @@ static int sys_write(int fd, void * buffer, unsigned size)
 			return total_bytes;
 		}	
 	}
-	//lock_release(&filesys_lock);
 	return total_bytes;
 }
 
 void fd_seek(int fd, unsigned position)
 {
-	struct file * fileOpen = fd_to_file(fd);
+	struct file *fileOpen = fd_to_file(fd);
 	if(fileOpen == NULL)// || file_is_dir(fileOpen))
 	{
 		return;
@@ -544,27 +540,18 @@ static void sys_seek(int fd, unsigned position)
 
 static unsigned sys_tell (int fd)
 {
-	struct file * fileOpen = fd_to_file(fd);
+	struct file *fileOpen = fd_to_file(fd);
 	return file_tell(fileOpen);
 } 
 
 static void sys_close(int fd)
 {
-	struct open_file * elem = fd_to_open_file(fd);
+	struct open_file *f = fd_to_open_file(fd);
 	if(elem != NULL)
 	{
-		filesys_free_open_file(elem);
+		filesys_free_open_file(f);
 	}
 }
-
-/*void sys_exit(int status)
-{
-	printf("%s: exit(%i)\n", thread_current()->name, status);
-	thread_current()->wait->status = status;
-	lock_release(&thread_current()->wait->wait_lock);
-	thread_exit();
-	NOT_REACHED();
-}*/
 
 struct child_process * add_child_process ( int pid) 
 {
@@ -575,7 +562,6 @@ struct child_process * add_child_process ( int pid)
 	cp->exit = false;
 	lock_init(&cp->wait_lock);
 	list_push_back(&thread_current()->children, &cp->elem);
-
 	return cp;
 }
 
@@ -583,7 +569,6 @@ struct child_process * get_child_process ( int pid)
 {
 	struct thread *t = thread_current();
 	struct list_elem *e;
-
 	for(e = list_begin(&t->children); e!= list_end(&t->children); e = list_next(e))
 	{
 		struct child_process *cp = list_entry(e, struct child_process, elem);

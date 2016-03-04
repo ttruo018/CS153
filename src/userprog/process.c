@@ -48,7 +48,6 @@ process_execute (const char *file_name)
 	char thread_name[16];
 	tid_t tid;
 	
-	//strlcpy(exec.file_name, file_name, sizeof(exec.file_name));
 	exec.file_name = file_name;
 	sema_init(&exec.load_sema, 0);
 
@@ -65,8 +64,6 @@ process_execute (const char *file_name)
 		strtok_r(thread_name, " ", &saveptr);
 	}
 
-	//struct child_status *child_status = malloc(sizeof(struct child_status));
-	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
 	if (tid != TID_ERROR) 
@@ -79,7 +76,6 @@ process_execute (const char *file_name)
 		{
 			tid = TID_ERROR;
 		}
-		//sema_up(&exec.load_sema);
 	}
 	return tid;
 }
@@ -101,7 +97,6 @@ start_process (void *file_name_)
   success = load (exec->file_name, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
-  //palloc_free_page (file_name);
   if(success)
   {
 	thread_current()->wait = malloc(sizeof *exec->child);
@@ -145,7 +140,8 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid ) 
 {
-	if(list_empty(&thread_current()->children))
+	struct thread *t = thread_current();
+	if(list_empty(&t->children))
 	{
 		return -1;
 	}
@@ -154,7 +150,7 @@ process_wait (tid_t child_tid )
 	struct list_elem *e;
 	struct child_process * c = NULL;
 	int status = -1;
-	for(e = list_begin(&thread_current()->children); e != list_end(&thread_current()->children); e = list_next(e))
+	for(e = list_begin(&t->children); e != list_end(&t->children); e = list_next(e))
 	{
 		c = list_entry(e, struct child_process, elem);
 		if(c->pid == child_tid)
@@ -164,16 +160,7 @@ process_wait (tid_t child_tid )
 			break;
 		}
 	}
-	
-	/*cp->wait = true;
-	while (!cp->exit)
-	{
-		//
-	}*/
-	/*while(cp->status == PROCESS_STARTED)
-	{
-		cond_wait(&thread_current()->childChange, &thread_current()->childLock);
-	}*/
+
 	remove_child_process(c);
 
 	return status;
@@ -329,7 +316,7 @@ load (const char *cmd_line, void (**eip) (void), void **esp)
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
     goto done;
-  process_activate ();
+  process_activate();
 
 	//if( (strcspn(cmd_line, " ")- 1) <= (NAME_MAX + 2) ) 
 	//{
@@ -601,7 +588,6 @@ setup_stack_helper (const char * cmd_line, uint8_t * kpage, uint8_t * upage, voi
         if(push(kpage, &ofs, &null, sizeof null) == NULL)
                 return false;
 
-        //argv = malloc(argv_size * sizeof (char*));
         for(token = strtok_r(cpy, " ", &ptr); token != NULL; token = strtok_r(NULL, " ", &ptr))
         {
                 void * uarg = upage + (token - (char *) kpage);
