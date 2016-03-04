@@ -81,10 +81,32 @@ process_execute (const char *file_name)
 	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
-	if (tid != TID_ERROR) 
+	if(tid == TID_ERROR)
 	{
+		list_remove(&exec.child->elem);
+		free(exec.child);
+		return TID_ERROR;	
+	}
+	else if (tid != TID_ERROR) 
+	{
+		exec.child->pid = tid;
+		lock_acquire(&thread_current()->childLock);
+		enum process_status cstatus = exec.child->stat;
+		while(cstatus == PROCESS_STARTING)
+		{
+			cond_wait(&thread_current()->childChange, &thread_current()->childLock);
+			cstatus = exec.child->stat;
+		}
+		lock_release(&thread_current()->childLock);
+		if(cstatus == PROCESS_FAIL)
+		{
+			list_remove(&exec.child->elem);
+			free(exec.child);
+			return TID_ERROR;
+		}
 		sema_down(&exec.load_sema);
 		if (exec.run_success){
+			
 			list_push_back(&thread_current()->children, &exec.child->elem);
 		}
 		else
