@@ -32,18 +32,19 @@ static uint8_t syscall_arg[] =
 	1, /*Close*/
 };
 
-struct fd_elem
+struct open_file
 {
 	struct hash_elem h_elem;
 	struct list_elem l_elem;
 	int fd;
-	int owner_pid;
+	int pid;
 	struct file * file;
 };
 
 static bool verify(const char *buffer)
 {
-	return is_user_vaddr(buffer) && pagedir_get_page(thread_current()->pagedir, buffer) != NULL;
+	struct thread *t = thread_current();
+	return is_user_vaddr(buffer) && pagedir_get_page(t->pagedir, buffer) != NULL;
 }
 
 static int allocate_fd(void)
@@ -52,55 +53,48 @@ static int allocate_fd(void)
 	return fd_curr++;
 }
 
-static const void * virtualAddress(const void * vaddr)
-{
-	if(!is_user_vaddr(vaddr))
-	{
-		return NULL;
-	}
-	return pagedir_get_page(thread_current()->pagedir, vaddr);
-}
-
 static unsigned filesys_fdhash_func (const struct hash_elem *e, void *aux)
 {
-	struct fd_elem *elem = hash_entry(e, struct fd_elem, h_elem);
-	return (unsigned)elem->fd;
+	struct open_file *ret = hash_entry(e, struct open_file, h_elem);
+	return (unsigned)ret->fd;
 }
 
 static bool filesys_fdhash_less(const struct hash_elem *a, const struct hash_elem *b, void * aux)
 {
-	struct fd_elem *a_fd = hash_entry(a, struct fd_elem, h_elem);
-	struct fd_elem *b_fd = hash_entry(b, struct fd_elem, h_elem);
+	struct open_file *a_file = hash_entry(a, struct open_file, h_elem);
+	struct open_file *b_file = hash_entry(b, struct open_file, h_elem);
 	
-	return (a_fd->fd < b_fd->fd);
+	return (a_file->fd < b_file->fd);
 }
 
 
-static struct fd_elem * filesys_get_fd_elem(int fd)
+static struct open_file * fd_to_open_file(int fd)
 {
-	struct fd_elem s;
+	struct open_file s;
 	s.fd = fd;
-	
+	struct thread *t = thread_current();
 	struct hash_elem *f = hash_find (&filesys_fdhash, &s.h_elem);
-	
 	if(f == NULL)
 	{
 		return NULL;
 	}
-	struct fd_elem * fd_element = hash_entry(f, struct fd_elem, h_elem);
-	
-	return (thread_current()->tid == fd_element->owner_pid) ? fd_element : NULL;
+	struct open_file * ret = hash_entry(f, struct open_file, h_elem);
+	if(t->tid != ret->pid)
+	{
+		return NULL;
+	}
+	return ret;
 }
 
 
-static void filesys_free_fd_elem(struct fd_elem * elem)
+static void filesys_free_open_file(struct open_file * opened_file)
 {
-	file_close(elem->file);
+	file_close(opened_file->file);
 	lock_acquire(&filesys_lock);
-	hash_delete(&filesys_fdhash, &elem->h_elem);
+	hash_delete(&filesys_fdhash, &opened_file->h_elem);
 	lock_release(&filesys_lock);
-	list_remove(&elem->l_elem);
-	free(elem);
+	list_remove(&opened_file->l_elem);
+	free(opened_file);
 }
 
 void free_open_files(struct thread * t)
@@ -109,17 +103,21 @@ void free_open_files(struct thread * t)
 	for(e = list_begin(&t->openFiles); e != list_end(&t->openFiles);)
 	{
 		struct list_elem * nextElement = list_next(e);
-		struct fd_elem * fd_elem = list_entry(e, struct fd_elem, l_elem);
-		filesys_free_fd_elem(fd_elem);
+		struct open_file * file_being_freed = list_entry(e, struct open_file, l_elem);
+		filesys_free_open_file(file_being_freed);
 		e = nextElement;
 	}
 }
-static struct file * filesys_get_file(int fd)
+static struct file * fd_to_file(int fd)
 {
 	lock_acquire(&filesys_lock);
-	struct fd_elem * f = filesys_get_fd_elem(fd);
+	struct open_file * f = fd_to_open_file(fd);
 	lock_release(&filesys_lock);
-	return f != NULL ? f->file : NULL;
+	if(f == NULL)
+	{
+		return NULL;
+	}
+	return f->file;
 }
 static void sys_halt (void);
 void sys_exit (int status);
@@ -144,7 +142,6 @@ syscall_init (void)
 	lock_init(&filesys_lock);
 	hash_init(&filesys_fdhash, filesys_fdhash_func, filesys_fdhash_less, NULL);
 	lock_init(&process_lock);
-	//process_init();
 }
 
 /* Copies SIZE bytes from user address USRC to kernel address DST.
@@ -206,15 +203,13 @@ static inline bool get_user (uint8_t *dst, const uint8_t *usrc)
 /* Returns true if UADDR is a valid, mapped user address, false otherwise. */
 static bool verify_user (const void *uaddr)
 {
-	return (uaddr < PHYS_BASE 
-			&& pagedir_get_page (thread_current()->pagedir, uaddr) != NULL);
+	struct thread *t = thread_current();
+	return (uaddr < PHYS_BASE && pagedir_get_page (t->pagedir, uaddr) != NULL);
 }
 
 static void
 syscall_handler (struct intr_frame *f ) 
 {
-  /*printf ("system call!\n");
-  thread_exit ();*/
   unsigned callNum;
   int args[3];
   int numOfArgs;
@@ -363,28 +358,28 @@ static bool sys_remove(const char *path)
 int fd_open(const char * file)
 {
 	struct file * fileOpen = filesys_open(file);
+	struct thread * t = thread_current();
 	if(fileOpen == NULL)
 	{
 		return -1;
 	}
-	
-	struct fd_elem * hash = malloc(sizeof(struct fd_elem));
+	struct open_file * hash = malloc(sizeof(struct open_file));
 	if(hash == NULL)
 	{
 		file_close(fileOpen);
 		return -1;
 	}
-	
-	hash->fd = allocate_fd();
+	int new_fd = allocate_fd();
+	hash->fd = new_fd;
 	hash->file = fileOpen;	
-	hash->owner_pid = thread_current()->tid;
+	hash->pid = t->tid;
 	
 	lock_acquire(&filesys_lock);
 	hash_insert(&filesys_fdhash, &hash->h_elem);
 	lock_release(&filesys_lock);
 	
-	list_push_back(&thread_current()->openFiles, &hash->l_elem);
-	return hash->fd;
+	list_push_back(&t->openFiles, &hash->l_elem);
+	return new_fd;
 }
 
 
@@ -394,17 +389,12 @@ static int sys_open(const char *file)
 	{
 		sys_exit(-1);
 	}
-	/*char * stringCheck = copy_in_string(file);
-	if(stringCheck == NULL)
-	{
-		sys_exit(-1);
-	}*/
 	return fd_open(file);
 }
 
 static int sys_filesize(int fd)
 {
-	struct file * fileOpen = filesys_get_file(fd);
+	struct file * fileOpen = fd_to_file(fd);
 	if(fileOpen == NULL)
 	{
 		return -1;
@@ -414,13 +404,12 @@ static int sys_filesize(int fd)
 
 int fd_read(int fd, void *buffer, unsigned size)
 {
-	struct file * fileOpen = filesys_get_file(fd);
+	struct file * fileOpen = fd_to_file(fd);
 	if(fileOpen == NULL) 
 	{
 		return -1;
 	}
-	off_t bytes_read = file_read(fileOpen, buffer, size);
-	return bytes_read;
+	return file_read(fileOpen, buffer, size);
 }
 
 static int conRead(char * buffer, unsigned size)
@@ -443,7 +432,11 @@ static int sys_read(int fd, void * buffer, unsigned size)
 	while(size > 0)
 	{
 		unsigned bytes_on_page = PGSIZE - pg_ofs (buffer);
-		unsigned bytes_to_read = (bytes_on_page) > size ? size : bytes_on_page;
+		unsigned bytes_to_read = bytes_on_page;
+		if(bytes_on_page > size)
+		{
+			bytes_to_read = size;
+		}
 		int bytes_read = 0;
 		if(!verify_user(buffer))
 		{
@@ -471,25 +464,24 @@ static int sys_read(int fd, void * buffer, unsigned size)
 
 int fd_write(int fd, const void * buffer, unsigned size)
 {
-	struct file * fileOpen = filesys_get_file(fd);
+	struct file * fileOpen = fd_to_file(fd);
 	if(fileOpen == NULL) 
 	{
 		return -1;
 	}
-	off_t bytes_written = file_write(fileOpen, buffer, size);
-	return bytes_written;
+	return file_write(fileOpen, buffer, size);
 }
 
 static int console_write(char * buffer, unsigned size) // chunks of 128 bytes each
 {
-	unsigned charsLeft = size;
-	while(charsLeft > 128) 
+	unsigned size_count = size;
+	while(size_count > 128) 
 	{
 		putbuf(buffer, 128); 
 		buffer = (const char *) buffer + 128; 
-		charsLeft -= 128; 
+		size_count -= 128; 
 	}
-	putbuf(buffer, charsLeft);
+	putbuf(buffer, size_count);
 	return size;
 }
 
@@ -500,7 +492,11 @@ static int sys_write(int fd, void * buffer, unsigned size)
 	while(size > 0)
 	{
 		unsigned bytes_on_page = PGSIZE - pg_ofs(buffer);
-		unsigned bytes_to_write = (bytes_on_page) > size ? size : bytes_on_page;
+		unsigned bytes_to_write = bytes_on_page;
+		if(bytes_on_page > size)
+		{
+			bytes_to_write = size;
+		}
 		int bytes_written;
 		
 		if(!verify(buffer) || !verify_user(buffer+size))
@@ -533,7 +529,7 @@ static int sys_write(int fd, void * buffer, unsigned size)
 
 void fd_seek(int fd, unsigned position)
 {
-	struct file * fileOpen = filesys_get_file(fd);
+	struct file * fileOpen = fd_to_file(fd);
 	if(fileOpen == NULL)// || file_is_dir(fileOpen))
 	{
 		return;
@@ -548,16 +544,16 @@ static void sys_seek(int fd, unsigned position)
 
 static unsigned sys_tell (int fd)
 {
-	struct file * fileOpen = filesys_get_file(fd);
+	struct file * fileOpen = fd_to_file(fd);
 	return file_tell(fileOpen);
 } 
 
 static void sys_close(int fd)
 {
-	struct fd_elem * elem = filesys_get_fd_elem(fd);
+	struct open_file * elem = fd_to_open_file(fd);
 	if(elem != NULL)
 	{
-		filesys_free_fd_elem(elem);
+		filesys_free_open_file(elem);
 	}
 }
 
