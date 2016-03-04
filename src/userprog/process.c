@@ -78,6 +78,11 @@ process_execute (const char *file_name)
 	}
 
 	//struct child_status *child_status = malloc(sizeof(struct child_status));
+	exec.child = malloc(sizeof(struct child_process));
+	if(exec.child == NULL)
+	{
+		return TID_ERROR;
+	}
 	exec.child->stat = PROCESS_STARTING;
 	list_push_back(&thread_current()->children, &exec.child->elem);
 	/* Create a new thread to execute FILE_NAME. */
