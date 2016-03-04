@@ -78,7 +78,8 @@ process_execute (const char *file_name)
 	}
 
 	//struct child_status *child_status = malloc(sizeof(struct child_status));
-	
+	exec.child->stat = PROCESS_STARTING;
+	list_push_back(&thread_current()->children, &exec.child->elem);
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
 	if(tid == TID_ERROR)
@@ -104,7 +105,7 @@ process_execute (const char *file_name)
 			free(exec.child);
 			return TID_ERROR;
 		}
-		sema_down(&exec.load_sema);
+		/*sema_down(&exec.load_sema);
 		if (exec.run_success){
 			
 			list_push_back(&thread_current()->children, &exec.child->elem);
@@ -112,7 +113,7 @@ process_execute (const char *file_name)
 		else
 		{
 			tid = TID_ERROR;
-		}
+		}*/
 		//sema_up(&exec.load_sema);
 	}
 	return tid;
@@ -150,8 +151,8 @@ start_process (void *file_name_)
 	exec->child->status = -1;
   	sema_init(&exec->child->sema, 0);
   }
-  exec->run_success = success;
-  sema_up(&exec->load_sema);
+  //exec->run_success = success;
+  //sema_up(&exec->load_sema);
   if (!success) 
   {
 	process_change(PROCESS_FAIL);
