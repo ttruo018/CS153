@@ -18,10 +18,10 @@ enum thread_status
 enum process_status
 {
 	PROCESS_STARTING,
-	PROCESS_STARTED,
-	PROCESS_FAILED,
+	PROCESS_START,
+	PROCESS_FAIL,
 	PROCESS_DONE,
-	PROCESS_ORPHANED
+	PROCESS_ORPHAN
 };
 /* Thread identifier type.
    You can redefine this to whatever type you like. */

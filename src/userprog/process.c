@@ -41,6 +41,18 @@ void process_init()
 	lock_init(&process_lock);
 }
 
+static void process_change(enum process_status status)
+{
+	thread_current()->wait->stat = status;
+	struct thread * parent = thread_current()->par;
+	if(parent != NULL)
+	{
+		lock_acquire(&parent->childLock);
+		cond_signal(&parent->childChange, &parent->childLock);
+		lock_release(&parent->childLock);
+	}
+}
+
 tid_t
 process_execute (const char *file_name) 
 {
@@ -120,6 +132,8 @@ start_process (void *file_name_)
   sema_up(&exec->load_sema);
   if (!success) 
   {
+	process_change(PROCESS_FAIL);
+	free_open_files(thread_current());
     	thread_exit ();
   }
   /* Start the user process by simulating a return from an
@@ -128,6 +142,7 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
+  process_change(PROCESS_START);
   free_open_files(thread_current());
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
@@ -177,6 +192,36 @@ process_wait (tid_t child_tid )
 	remove_child_process(c);
 
 	return status;
+}
+
+void process_letgo(int status)
+{
+	lock_acquire(&process_lock);
+	if(thread_current()->wait->stat == PROCESS_ORPHAN)
+	{
+		free(thread_current()->wait);
+	}
+	else if(thread_current()->par != NULL)
+	{
+		thread_current()->wait->status = status;
+		process_change(PROCESS_DONE);
+	}
+
+	struct list_elem *e;
+	for(e = list_begin(&thread_current()->children); e = list_end(&thread_current()->children);)
+	{
+		struct child_process *curProcess = list_entry(e, struct child_process, elem);
+		e = list_next(e);
+		if(curProcess->stat == PROCESS_DONE)
+		{	
+			free(curProcess);
+		}
+		else
+		{
+			curProcess->stat = PROCESS_ORPHAN;
+		}
+	}
+	lock_release(&process_lock);
 }
 
 /* Free the current process's resources. */
