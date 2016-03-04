@@ -366,7 +366,7 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
 
   if (!list_empty (&cond->waiters))
   { 
-    list_sort(&cond->waiters, &semPriority, NULL); // sort to get highest priority so that it will signal the next highest priority
+    //list_sort(&cond->waiters, &semPriority, NULL); // sort to get highest priority so that it will signal the next highest priority
     sema_up (&list_entry (list_pop_front (&cond->waiters),
                           struct semaphore_elem, elem)->semaphore);
   }
