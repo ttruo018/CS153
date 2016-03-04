@@ -119,7 +119,6 @@ process_execute (const char *file_name)
 		{
 			tid = TID_ERROR;
 		}*/
-		//sema_up(&exec.load_sema);
 	}
 	return tid;
 }
@@ -213,10 +212,10 @@ process_wait (tid_t child_tid )
 	{
 		//
 	}*/
-	/*while(cp->status == PROCESS_STARTED)
+	while(c->status == PROCESS_START)
 	{
 		cond_wait(&thread_current()->childChange, &thread_current()->childLock);
-	}*/
+	}
 	remove_child_process(c);
 
 	return status;
