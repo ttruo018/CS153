@@ -263,6 +263,7 @@ process_exit (void)
     struct list_elem *e;
     struct list_elem *f;
     struct child_process *curProcess;
+    file_close(cur->execFile);
 
     if(cur->wait != NULL)
     {
@@ -278,7 +279,6 @@ process_exit (void)
     }
 
     free_open_files(thread_current());
-    file_close(cur->execFile);
 
     pd = cur->pagedir;
     if (pd != NULL) 
