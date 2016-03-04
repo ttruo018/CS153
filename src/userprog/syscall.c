@@ -312,8 +312,7 @@ void sys_exit (int status)
 	/*file_allow_write(&thread_current()->execFile);
 	file_close(thread_current()->execFile);
 	lock_release(&process_lock);*/
-	//thread_current()->wait->status = status;
-	process_letgo(status);
+	thread_current()->wait->status = status;
 	thread_exit();
 	NOT_REACHED();
 }

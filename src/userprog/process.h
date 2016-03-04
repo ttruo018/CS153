@@ -8,6 +8,5 @@ void process_init(void);
 int process_wait (tid_t);
 void process_exit (void);
 void process_activate (void);
-void process_letgo(int status);
 
 #endif /* userprog/process.h */

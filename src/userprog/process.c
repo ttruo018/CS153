@@ -41,18 +41,6 @@ void process_init()
 	lock_init(&process_lock);
 }
 
-static void process_change(enum process_status status)
-{
-	thread_current()->wait->stat = status;
-	struct thread * parent = thread_current()->par;
-	if(parent != NULL)
-	{
-		lock_acquire(&parent->childLock);
-		cond_signal(&parent->childChange, &parent->childLock);
-		lock_release(&parent->childLock);
-	}
-}
-
 tid_t
 process_execute (const char *file_name) 
 {
@@ -78,47 +66,20 @@ process_execute (const char *file_name)
 	}
 
 	//struct child_status *child_status = malloc(sizeof(struct child_status));
-	exec.child = malloc(sizeof(struct child_process));
-	if(exec.child == NULL)
-	{
-		return TID_ERROR;
-	}
-	exec.child->stat = PROCESS_STARTING;
-	list_push_back(&thread_current()->children, &exec.child->elem);
+	
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (thread_name, PRI_DEFAULT, start_process, &exec);
-	if(tid == TID_ERROR)
+	if (tid != TID_ERROR) 
 	{
-		list_remove(&exec.child->elem);
-		free(exec.child);
-		return TID_ERROR;	
-	}
-	else if (tid != TID_ERROR) 
-	{
-		exec.child->pid = tid;
-		lock_acquire(&thread_current()->childLock);
-		enum process_status cstatus = exec.child->stat;
-		while(cstatus == PROCESS_STARTING)
-		{
-			cond_wait(&thread_current()->childChange, &thread_current()->childLock);
-			cstatus = exec.child->stat;
-		}
-		lock_release(&thread_current()->childLock);
-		if(cstatus == PROCESS_FAIL)
-		{
-			list_remove(&exec.child->elem);
-			free(exec.child);
-			return TID_ERROR;
-		}
-		/*sema_down(&exec.load_sema);
+		sema_down(&exec.load_sema);
 		if (exec.run_success){
-			
 			list_push_back(&thread_current()->children, &exec.child->elem);
 		}
 		else
 		{
 			tid = TID_ERROR;
-		}*/
+		}
+		//sema_up(&exec.load_sema);
 	}
 	return tid;
 }
@@ -155,12 +116,10 @@ start_process (void *file_name_)
 	exec->child->status = -1;
   	sema_init(&exec->child->sema, 0);
   }
-  //exec->run_success = success;
-  //sema_up(&exec->load_sema);
+  exec->run_success = success;
+  sema_up(&exec->load_sema);
   if (!success) 
   {
-	process_change(PROCESS_FAIL);
-	free_open_files(thread_current());
     	thread_exit ();
   }
   /* Start the user process by simulating a return from an
@@ -169,7 +128,6 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-  process_change(PROCESS_START);
   free_open_files(thread_current());
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
@@ -212,43 +170,13 @@ process_wait (tid_t child_tid )
 	{
 		//
 	}*/
-	while(c->status == PROCESS_START)
+	/*while(cp->status == PROCESS_STARTED)
 	{
 		cond_wait(&thread_current()->childChange, &thread_current()->childLock);
-	}
+	}*/
 	remove_child_process(c);
 
 	return status;
-}
-
-void process_letgo(int status)
-{
-	lock_acquire(&process_lock);
-	if(thread_current()->wait->stat == PROCESS_ORPHAN)
-	{
-		free(thread_current()->wait);
-	}
-	else if(thread_current()->par != NULL)
-	{
-		thread_current()->wait->status = status;
-		process_change(PROCESS_DONE);
-	}
-
-	struct list_elem *e;
-	for(e = list_begin(&thread_current()->children); e = list_end(&thread_current()->children);)
-	{
-		struct child_process *curProcess = list_entry(e, struct child_process, elem);
-		e = list_next(e);
-		if(curProcess->stat == PROCESS_DONE)
-		{	
-			free(curProcess);
-		}
-		else
-		{
-			curProcess->stat = PROCESS_ORPHAN;
-		}
-	}
-	lock_release(&process_lock);
 }
 
 /* Free the current process's resources. */
@@ -263,7 +191,6 @@ process_exit (void)
     struct list_elem *e;
     struct list_elem *f;
     struct child_process *curProcess;
-    file_close(cur->execFile);
 
     if(cur->wait != NULL)
     {
@@ -279,6 +206,7 @@ process_exit (void)
     }
 
     free_open_files(thread_current());
+    file_close(cur->execFile);
 
     pd = cur->pagedir;
     if (pd != NULL) 
