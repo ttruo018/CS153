@@ -347,7 +347,7 @@ static bool sys_remove(const char *path)
 	
 	bool success = false;
 	struct file * closing_file = filesys_open(path);
-	if(file != NULL)
+	if(closing_file != NULL)
 	{
 		file_close(closing_file);
 		success = filesys_remove(path);
@@ -547,7 +547,7 @@ static unsigned sys_tell (int fd)
 static void sys_close(int fd)
 {
 	struct open_file *f = fd_to_open_file(fd);
-	if(elem != NULL)
+	if(f != NULL)
 	{
 		filesys_free_open_file(f);
 	}
